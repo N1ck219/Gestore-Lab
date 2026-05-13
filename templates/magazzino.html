@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<style>
+    .dataTables_wrapper { color: var(--text-secondary); }
+    .dataTables_length select, .dataTables_filter input {
+        background-color: var(--card-bg) !important;
+        color: white !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 0.5rem;
+        padding: 5px;
+    }
+    
+    /* Configurazione Tabella e Altezze Forzate */
+    #magazzinoTable { 
+        border-collapse: separate; 
+        border-spacing: 0; 
+        width: 100%;
+    }
+
+    table.dataTable thead th { 
+        border-bottom: 1px solid var(--border-color); 
+        color: var(--text-secondary);
+        position: sticky;
+        top: 0;
+        background: var(--card-bg) !important;
+        z-index: 110;
+        min-height: 70px;
+        height: 70px;
+        padding: 10px 15px !important;
+        text-align: left;
+        vertical-align: middle;
+    }
+    
+    /* Righe Prodotto Standard */
+    #magazzinoTable tbody tr { cursor: pointer; transition: all 0.2s; }
+    #magazzinoTable tbody tr:not(.group-header):hover { background: rgba(223, 19, 126, 0.05) !important; }
+    #magazzinoTable td { 
+        padding: 12px 15px !important;
+        vertical-align: middle;
+    }
+
+    /* Stili per le Righe Divisorie Sticky */
+    .group-header {
+        pointer-events: none;
+    }
+    .group-header td {
+        min-height: 40px;
+        padding: 10px 15px !important;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        position: sticky;
+        top: 70px; /* Valore di fallback, verrà sovrascritto da JS */
+        z-index: 100;
+        background: #1e1b26 !important;
+        border: none !important;
+    }
+    .group-header td:first-child {
+        white-space: nowrap;
+        overflow: visible;
+        font-weight: bold;
+    }
+    .group-header td:not(:first-child) {
+        padding: 0 !important;
+    }
+
+    /* Colori Categorie - applicati alla riga intera */
+    .cat-blue td { border-bottom: 2px solid #818cf8 !important; }
+    .cat-blue td:first-child { color: #818cf8; border-left: 5px solid #818cf8 !important; }
+    .cat-orange td { border-bottom: 2px solid #fb923c !important; }
+    .cat-orange td:first-child { color: #fb923c; border-left: 5px solid #fb923c !important; }
+    .cat-purple td { border-bottom: 2px solid #a78bfa !important; }
+    .cat-purple td:first-child { color: #a78bfa; border-left: 5px solid #a78bfa !important; }
+    .cat-green td { border-bottom: 2px solid #4ade80 !important; }
+    .cat-green td:first-child { color: #4ade80; border-left: 5px solid #4ade80 !important; }
+    .cat-gray td { border-bottom: 2px solid #475569 !important; }
+    .cat-gray td:first-child { color: #94a3b8; border-left: 5px solid #475569 !important; }
+
+    /* Sfondi Sezione - tinta visibile sulle righe prodotto */
+    .section-blue tr:not(.group-header) td { background: rgba(129, 140, 248, 0.12); }
+    .section-blue tr:not(.group-header):hover td { background: rgba(129, 140, 248, 0.20) !important; }
+    .section-orange tr:not(.group-header) td { background: rgba(251, 146, 60, 0.12); }
+    .section-orange tr:not(.group-header):hover td { background: rgba(251, 146, 60, 0.20) !important; }
+    .section-purple tr:not(.group-header) td { background: rgba(167, 139, 250, 0.12); }
+    .section-purple tr:not(.group-header):hover td { background: rgba(167, 139, 250, 0.20) !important; }
+    .section-green tr:not(.group-header) td { background: rgba(74, 222, 128, 0.12); }
+    .section-green tr:not(.group-header):hover td { background: rgba(74, 222, 128, 0.20) !important; }
+    .section-gray tr:not(.group-header) td { background: rgba(71, 85, 105, 0.12); }
+    .section-gray tr:not(.group-header):hover td { background: rgba(71, 85, 105, 0.20) !important; }
+
+    /* Alert scorte — badge pulsante */
+    .stock-val { font-weight: bold; }
+    .stock-ok { color: var(--success); }
+    .low-stock-badge {
+        display: inline-block;
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 4px;
+        margin-left: 8px;
+        animation: pulse-alert 2s ease-in-out infinite;
+    }
+    @keyframes pulse-alert {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    .stock-critical-val {
+        color: #f87171;
+        font-weight: bold;
+    }
+
+    .placeholder-cell { color: var(--text-secondary); opacity: 0.4; font-style: italic; font-size: 0.85rem; }
+
+    /* Modal Styles */
+    .modal {
+        display: none; position: fixed; z-index: 2000;
+        left: 0; top: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+    }
+    .modal-content {
+        background: var(--card-bg); margin: 5% auto; padding: 2rem;
+        border: 1px solid var(--border-color); width: 95%; max-width: 1200px;
+        border-radius: 1rem; box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+    }
+    .detail-table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+    .detail-table th { background: rgba(255,255,255,0.03); color: var(--text-secondary); text-align: left; padding: 12px; border-bottom: 2px solid var(--border-color); }
+    .detail-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .close-btn { float: right; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); }
+</style>
+
+<div style="margin-bottom: 2rem;">
+    <h2>📊 Monitoraggio Inventario</h2>
+    <p style="color: var(--text-secondary); font-size: 0.9rem;">Visualizzazione raggruppata per categoria Excel</p>
+</div>
+
+<div class="table-container" style="padding: 1.5rem; overflow: visible !important;">
+    <table id="magazzinoTable" class="display">
+        <thead>
+            <tr>
+                <th style="width: 6%;">Codice</th>
+                <th style="width: 28%;">Materiale</th>
+                <th style="width: 10%;">Giacenza</th>
+                <th style="width: 12%;">Stato</th>
+                <th style="width: 12%;">Lotto in Uso</th>
+                <th style="width: 10%;">Q.tà Lotto</th>
+                <th style="width: 10%;">Scadenza</th>
+                <th style="width: 8%;">Scorta Min.</th>
+            </tr>
+        </thead>
+        
+        {% for cat_name, items in grouped_inventory.items() %}
+        {# Ogni categoria ha il suo TBODY per permettere il corretto funzionamento dello sticky push #}
+            {% set color_class = 'cat-gray' %}
+            {% if 'sterile' in cat_name.lower() or 'vetro' in cat_name.lower() %}{% set color_class = 'cat-blue' %}
+            {% elif 'synthera' in cat_name.lower() or 'fbb' in cat_name.lower() %}{% set color_class = 'cat-orange' %}
+            {% elif 'colina' in cat_name.lower() or 'reagenti chimici' in cat_name.lower() %}{% set color_class = 'cat-purple' %}
+            {% elif 'dopa' in cat_name.lower() or 'finali' in cat_name.lower() %}{% set color_class = 'cat-green' %}
+            {% endif %}
+        <tbody class="category-group section-{{ color_class | replace('cat-', '') }}">
+            
+            <tr class="group-header {{ color_class }}">
+                <td><strong>{{ cat_name }}</strong></td>
+                <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
+
+            {% for item in items %}
+                {% set giacenza = item['giacenza_totale'] if item['giacenza_totale'] is not none else 0 %}
+                {% set scorta_min = item['scorta_minima'] if item['scorta_minima'] is not none else 0 %}
+                {% set is_low_stock = giacenza < scorta_min %}
+                <tr onclick="openBatchDetails('{{ item['codice'] }}', '{{ item['nome_mp'] }}')">
+                    <td><span class="badge">{{ item['codice'] }}</span></td>
+                    <td><strong>{{ item['nome_mp'] }}</strong></td>
+                    <td>
+                        <span class="{{ 'stock-critical-val' if is_low_stock else 'stock-ok' }}" style="font-weight: bold;">
+                            {{ giacenza | round(2) }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if is_low_stock %}
+                        <span class="low-stock-badge">⚠ SOTTO SCORTA</span>
+                        {% endif %}
+                    </td>
+                    <td class="placeholder-cell">Vedi dettaglio</td>
+                    <td class="placeholder-cell">-</td>
+                    <td class="placeholder-cell">-</td>
+                    <td style="font-weight: 500;">{{ item['scorta_minima'] or '0' }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+        {% endfor %}
+    </table>
+</div>
+
+<!-- Modal Dettaglio Lotti -->
+<div id="batchModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeBatchModal()">&times;</span>
+        <h3 id="modalTitle" style="color: var(--accent-color); margin-bottom: 0.5rem;">Dettaglio Lotti</h3>
+        <p id="modalSubtitle" style="color: var(--text-secondary); margin-bottom: 1.5rem;"></p>
+        <div style="overflow-x: auto;">
+            <table class="detail-table">
+                <thead>
+                    <tr>
+                        <th>Arrivo</th>
+                        <th>LOTTO INTERNO</th>
+                        <th>Lotto fornitore</th>
+                        <th>Q.tà Arrivata</th>
+                        <th>Scadenza</th>
+                        <th>Prezzo</th>
+                        <th>In Uso</th>
+                        <th>Ultimo Utilizzo</th>
+                        <th>Giacenza</th>
+                    </tr>
+                </thead>
+                <tbody id="batchTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#magazzinoTable').DataTable({
+            "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json" },
+            "pageLength": 200,
+            "ordering": false,
+            "bLengthChange": false,
+            "dom": 'f'
+        });
+
+        // Calcola l'altezza reale dell'intestazione e allinea i divisori
+        setTimeout(function() {
+            var theadHeight = $('#magazzinoTable thead').outerHeight();
+            $('.group-header td').css('top', theadHeight + 'px');
+        }, 100);
+    });
+
+    function openBatchDetails(codice, nome) {
+        document.getElementById('modalTitle').innerText = "Storico Lotti: " + nome;
+        document.getElementById('modalSubtitle').innerText = "Codice: " + codice;
+        const tbody = document.getElementById('batchTableBody');
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">Caricamento...</td></tr>';
+        document.getElementById('batchModal').style.display = 'block';
+
+        fetch(`/api/lotti_per_mp/${codice}`)
+            .then(response => response.json())
+            .then(data => {
+                tbody.innerHTML = '';
+                data.lotti.forEach(lotto => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${lotto.arrivo_magazzino || '-'}</td>
+                        <td><span class="badge" style="background: rgba(129, 140, 248, 0.1); color: #818cf8;">${lotto.lotto_interno}</span></td>
+                        <td>${lotto.lotto_fornitore || '-'}</td>
+                        <td style="font-weight:bold;">${lotto.qnt_arrivata || '0'}</td>
+                        <td>${lotto.data_scadenza || '-'}</td>
+                        <td class="placeholder-cell"></td><td class="placeholder-cell"></td><td class="placeholder-cell"></td><td class="placeholder-cell"></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+    }
+
+    function closeBatchModal() { document.getElementById('batchModal').style.display = 'none'; }
+    window.onclick = function(event) { if (event.target == document.getElementById('batchModal')) closeBatchModal(); }
+</script>
+{% endblock %}

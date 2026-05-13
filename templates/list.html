@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<style>
+    /* Personalizzazione DataTables per il tema Dark */
+    .dataTables_wrapper { color: var(--text-secondary); }
+    .dataTables_length select, .dataTables_filter input {
+        background-color: var(--card-bg) !important;
+        color: white !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 0.5rem;
+        padding: 5px;
+    }
+    table.dataTable thead th { border-bottom: 1px solid var(--border-color); color: var(--text-secondary); }
+    table.dataTable tbody td { border-bottom: 1px solid var(--border-color); background: transparent !important; color: var(--text-primary); }
+    .dataTables_info, .dataTables_paginate { margin-top: 1rem; color: var(--text-secondary) !important; }
+    .dataTables_paginate .paginate_button { color: var(--text-secondary) !important; border-radius: 5px !important; }
+    .dataTables_paginate .paginate_button.current { background: var(--gradient) !important; border: none !important; color: white !important; }
+    .dataTables_filter { margin-bottom: 2rem; }
+    .dataTables_filter input { width: 300px; padding: 10px; }
+</style>
+
+<div style="margin-bottom: 2rem;">
+    <h2>📋 Elenco Completo Materie Prime</h2>
+</div>
+
+<div class="table-container" style="padding: 1.5rem;">
+    <table id="mpTable" class="display">
+        <thead>
+            <tr>
+                <th>Codice</th>
+                <th>Nome Materia Prima</th>
+                <th>Unità</th>
+                <th>Uso</th>
+                <th>Etichetta</th>
+                <th>Fornitore</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr>
+                <td><span class="badge">{{ product['codice'] }}</span></td>
+                <td><strong>{{ product['nome_mp'] }}</strong></td>
+                <td>{{ product['unita_misura'] }}</td>
+                <td>{{ product['uso'] }}</td>
+                <td><small>{{ product['nome_etichetta'] or '-' }}</small></td>
+                <td><small>{{ product['codice_fornitore'] or '-' }}</small></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Scripts per DataTables -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#mpTable').DataTable({
+            "language": {
+                "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json"
+            },
+            "pageLength": 25,
+            "order": [[ 1, "asc" ]] // Ordina per Nome Materia Prima di default
+        });
+    });
+</script>
+{% endblock %}

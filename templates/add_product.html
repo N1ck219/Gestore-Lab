@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 700px; margin: 0 auto; background: var(--card-bg); padding: 2rem; border-radius: 1rem; border: 1px solid var(--border-color);">
+    <h2 style="margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">➕ Aggiungi Materia Prima</h2>
+    
+    <form method="post">
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
+            <div class="form-group">
+                <label for="codice">Codice Interno *</label>
+                <input type="text" name="codice" id="codice" placeholder="Es. 424" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="nome_mp">Nome Materia Prima *</label>
+                <input type="text" name="nome_mp" id="nome_mp" placeholder="Es. Acqua arricchita" required>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div class="form-group">
+                <label for="nome_file">Nome File *</label>
+                <input type="text" name="nome_file" id="nome_file" placeholder="Es. AcquaArricchita" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="nome_etichetta">Nome per Etichette *</label>
+                <input type="text" name="nome_etichetta" id="nome_etichetta" placeholder="Nome sulle etichette" required>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div class="form-group">
+                <label for="unita_misura">Unità di Misura *</label>
+                <input type="text" name="unita_misura" id="unita_misura" placeholder="Es. g, ml, Pz" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="codice_fornitore">Codice Fornitore (Opzionale)</label>
+                <input type="text" name="codice_fornitore" id="codice_fornitore" placeholder="Es. ABC-123">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="uso">Destinazione d'uso *</label>
+            <input type="text" name="uso" id="uso" placeholder="Es. Produzione / Analisi" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="controcampione">Controcampione *</label>
+                <select name="controcampione" id="controcampione" required>
+                    <option value="NO">NO</option>
+                    <option value="SI">SI</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="distribuzione">Distribuzione *</label>
+                <select name="distribuzione" id="distribuzione" required>
+                    <option value="NO">NO</option>
+                    <option value="SI">SI</option>
+                </select>
+            </div>
+        </div>
+        
+        <p style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 1rem;">* Campi obbligatori</p>
+
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Salva Prodotto</button>
+            <a href="{{ url_for('index') }}" class="btn" style="background: rgba(255,255,255,0.05); color: white;">Annulla</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

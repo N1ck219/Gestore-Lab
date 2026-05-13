@@ -1,0 +1,263 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .search-container { position: relative; }
+    .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-top: none;
+        max-height: 250px;
+        overflow-y: auto;
+        z-index: 1000;
+        border-radius: 0 0 0.5rem 0.5rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        display: none;
+    }
+    .result-item {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .result-item:hover { background: rgba(223, 19, 126, 0.1); }
+    .result-item .item-code {
+        float: right;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        background: rgba(0,0,0,0.3);
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    .btn-add-new {
+        background: rgba(223, 19, 126, 0.2);
+        color: var(--accent-color);
+        font-weight: bold;
+        border-bottom: 2px solid var(--accent-color);
+    }
+    
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0; top: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8);
+        backdrop-filter: blur(5px);
+    }
+    .modal-content {
+        background: var(--card-bg);
+        margin: 15% auto;
+        padding: 2rem;
+        border: 1px solid var(--border-color);
+        width: 400px;
+        border-radius: 1rem;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+    }
+</style>
+
+<div style="max-width: 700px; margin: 0 auto; background: var(--card-bg); padding: 2rem; border-radius: 1rem; border: 1px solid var(--border-color);">
+    <h2 style="margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">📦 Registra Nuovo Lotto</h2>
+    
+    <form method="post" id="lottoForm">
+        <!-- RIGA 1: DATE -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+                <label for="data_arrivo">Data Arrivo *</label>
+                <input type="date" name="data_arrivo" id="data_arrivo" value="{{ today }}" required>
+            </div>
+            <div class="form-group">
+                <label for="data_scadenza">Data Scadenza *</label>
+                <input type="date" name="data_scadenza" id="data_scadenza" required>
+            </div>
+        </div>
+
+        <!-- RIGA 2: RICERCA PRODOTTO E CODICE -->
+        <div style="display: grid; grid-template-columns: 1fr 120px; gap: 1.5rem; margin-bottom: 1.5rem; align-items: flex-end;">
+            <div class="form-group search-container">
+                <label for="mp_search">Cerca Materia Prima *</label>
+                <input type="text" id="mp_search" placeholder="Scrivi il nome o il codice..." autocomplete="off" required>
+                <input type="hidden" name="codice_mp" id="codice_mp_hidden" required>
+                
+                <div id="mpResults" class="search-results">
+                    {% for mp in materie %}
+                        <div class="result-item mp-item" 
+                             data-name="{{ mp['nome_mp'] }}" 
+                             data-code="{{ mp['codice'] }}"
+                             onclick="selectMP('{{ mp['nome_mp'] }}', '{{ mp['codice'] }}')">
+                            <span class="item-name">{{ mp['nome_mp'] }}</span>
+                            <span class="item-code">{{ mp['codice'] }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Codice</label>
+                <input type="text" id="display_codice" readonly placeholder="---" 
+                       style="background: rgba(0,0,0,0.3); cursor: not-allowed; text-align: center; border-color: rgba(255,255,255,0.1);">
+            </div>
+        </div>
+
+        <!-- RIGA 3: RICERCA FORNITORE -->
+        <div class="form-group search-container" style="margin-bottom: 1.5rem;">
+            <label for="fornitore_search">Fornitore *</label>
+            <input type="text" name="fornitore" id="fornitore_search" placeholder="Cerca o aggiungi fornitore..." autocomplete="off" required>
+            
+            <div id="fornitoriResults" class="search-results">
+                <div class="result-item btn-add-new" onclick="openFornitoreModal()">➕ Aggiungi Nuovo Fornitore</div>
+                {% for forn in fornitori %}
+                    <div class="result-item forn-item" data-name="{{ forn['nome'] }}" onclick="selectFornitore('{{ forn['nome'] }}')">
+                        {{ forn['nome'] }}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- RIGA 4: LOTTI -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+                <label for="lotto_interno">Lotto Interno *</label>
+                <input type="text" name="lotto_interno" id="lotto_interno" placeholder="Es. UDN/XXX-YY" required>
+            </div>
+            <div class="form-group">
+                <label for="lotto_fornitore">Lotto Fornitore *</label>
+                <input type="text" name="lotto_fornitore" id="lotto_fornitore" placeholder="Lotto originale" required>
+            </div>
+        </div>
+
+        <!-- RIGA 5: QUANTITÀ -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+            <div class="form-group">
+                <label for="qnt_arrivata">Quantità Arrivata *</label>
+                <input type="text" name="qnt_arrivata" id="qnt_arrivata" placeholder="Es. 500" required>
+            </div>
+            <div class="form-group">
+                <label for="pz_x_cf">Pezzi x cf *</label>
+                <input type="text" name="pz_x_cf" id="pz_x_cf" placeholder="Es. 10" required>
+            </div>
+        </div>
+        
+        <p style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 1.5rem;">* Tutti i campi sono obbligatori</p>
+
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Registra Lotto</button>
+            <a href="{{ url_for('index') }}" class="btn" style="background: rgba(255,255,255,0.05); color: white;">Annulla</a>
+        </div>
+    </form>
+</div>
+
+<!-- Modal Nuovo Fornitore -->
+<div id="fornitoreModal" class="modal">
+    <div class="modal-content">
+        <h3 style="margin-bottom: 1.5rem; color: var(--accent-color);">Nuovo Fornitore</h3>
+        <div class="form-group">
+            <label>Nome Fornitore</label>
+            <input type="text" id="new_fornitore_nome" placeholder="Es. Sigma-Aldrich">
+        </div>
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="button" class="btn btn-primary" onclick="saveNewFornitore()" style="flex: 1;">Salva</button>
+            <button type="button" class="btn" onclick="closeFornitoreModal()" style="background: rgba(255,255,255,0.05); color: white;">Annulla</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- GESTIONE MATERIE PRIME ---
+    const mpSearch = document.getElementById('mp_search');
+    const mpResults = document.getElementById('mpResults');
+    const mpHidden = document.getElementById('codice_mp_hidden');
+    const displayCodice = document.getElementById('display_codice');
+    const mpItems = document.querySelectorAll('.mp-item');
+
+    mpSearch.addEventListener('focus', () => mpResults.style.display = 'block');
+    mpSearch.addEventListener('input', function() {
+        const filter = this.value.toLowerCase();
+        mpItems.forEach(item => {
+            const name = item.getAttribute('data-name').toLowerCase();
+            const code = item.getAttribute('data-code').toLowerCase();
+            item.style.display = (name.includes(filter) || code.includes(filter)) ? 'block' : 'none';
+        });
+        mpResults.style.display = 'block';
+    });
+
+    function selectMP(name, code) {
+        mpSearch.value = name;
+        mpHidden.value = code;
+        displayCodice.value = code;
+        mpResults.style.display = 'none';
+    }
+
+    // --- GESTIONE FORNITORI ---
+    const fornSearch = document.getElementById('fornitore_search');
+    const fornResults = document.getElementById('fornitoriResults');
+
+    fornSearch.addEventListener('focus', () => fornResults.style.display = 'block');
+    fornSearch.addEventListener('input', function() {
+        const filter = this.value.toLowerCase();
+        const fornItems = document.querySelectorAll('.forn-item');
+        fornItems.forEach(item => {
+            item.style.display = item.getAttribute('data-name').toLowerCase().includes(filter) ? 'block' : 'none';
+        });
+        fornResults.style.display = 'block';
+    });
+
+    function selectFornitore(name) {
+        fornSearch.value = name;
+        fornResults.style.display = 'none';
+    }
+
+    // --- MODAL FORNITORE ---
+    function openFornitoreModal() {
+        fornResults.style.display = 'none';
+        document.getElementById('fornitoreModal').style.display = 'block';
+        document.getElementById('new_fornitore_nome').focus();
+    }
+
+    function closeFornitoreModal() {
+        document.getElementById('fornitoreModal').style.display = 'none';
+    }
+
+    function saveNewFornitore() {
+        const nome = document.getElementById('new_fornitore_nome').value.trim();
+        if (!nome) return alert("Inserisci un nome!");
+
+        const formData = new FormData();
+        formData.append('nome', nome);
+
+        fetch('/add_fornitore', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Aggiungi alla lista esistente per future ricerche
+                const newDiv = document.createElement('div');
+                newDiv.className = 'result-item forn-item';
+                newDiv.setAttribute('data-name', nome);
+                newDiv.innerText = nome;
+                newDiv.onclick = () => selectFornitore(nome);
+                fornResults.appendChild(newDiv);
+                
+                // Seleziona subito il nuovo fornitore
+                selectFornitore(nome);
+                closeFornitoreModal();
+            } else {
+                alert(data.message);
+            }
+        });
+    }
+
+    // Chiudi liste se clicchi fuori
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.search-container')) {
+            mpResults.style.display = 'none';
+            fornResults.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

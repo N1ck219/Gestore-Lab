@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<style>
+    .dataTables_wrapper { color: var(--text-secondary); }
+    .dataTables_length select, .dataTables_filter input {
+        background-color: var(--card-bg) !important;
+        color: white !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 0.5rem;
+        padding: 5px;
+    }
+    table.dataTable thead th { border-bottom: 1px solid var(--border-color); color: var(--text-secondary); }
+    table.dataTable tbody tr { cursor: pointer; transition: background 0.2s; }
+    table.dataTable tbody tr:hover { background: rgba(56, 189, 248, 0.05) !important; }
+    
+    .status-badge {
+        display: inline-block;
+        width: 35px;
+        height: 25px;
+        line-height: 25px;
+        text-align: center;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 0.75rem;
+    }
+    .status-ok { background-color: var(--success); color: white; }
+    .status-none { background-color: #334155; color: #64748b; }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.8);
+        backdrop-filter: blur(5px);
+        overflow-y: auto;
+    }
+    .modal-content {
+        background-color: var(--card-bg);
+        margin: 2% auto;
+        padding: 2rem;
+        border: 1px solid var(--border-color);
+        width: 90%;
+        max-width: 900px;
+        border-radius: 1rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    .close { color: var(--text-secondary); float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+    
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-top: 1.5rem; }
+    .detail-item { margin-bottom: 1rem; }
+    .detail-label { color: var(--text-secondary); font-size: 0.75rem; display: block; margin-bottom: 4px; }
+    
+    input, select {
+        width: 100%;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--border-color);
+        padding: 8px;
+        border-radius: 4px;
+        color: white;
+    }
+</style>
+
+<div style="margin-bottom: 2rem;">
+    <h2>📦 Registro Lotti</h2>
+</div>
+
+<div class="table-container" style="padding: 1.5rem;">
+    <table id="lottiTable" class="display">
+        <thead>
+            <tr>
+                <th>Lotto Interno</th>
+                <th>Materia Prima</th>
+                <th>Arrivo</th>
+                <th>Scadenza</th>
+                <th>Giacenza</th>
+                <th>Appr.</th>
+                <th>Etich.</th>
+                <th>CC</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lotto in lotti %}
+            <tr onclick="showDetails({{ lotto | tojson | forceescape }})">
+                <td><span class="badge" style="background: rgba(129, 140, 248, 0.1); color: #818cf8;">{{ lotto['lotto_interno'] }}</span></td>
+                <td><strong>{{ lotto['nome_mp'] or 'N.D.' }}</strong></td>
+                <td><small>{{ lotto['data_arrivo'] }}</small></td>
+                <td><small>{{ lotto['data_scadenza'] }}</small></td>
+                <td><strong style="color: var(--accent-color)">{{ lotto['giacenza'] or '-' }}</strong></td>
+                <td>{% if lotto['appr']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
+                <td>{% if lotto['etich']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
+                <td>{% if lotto['cc']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal Modifica/Report -->
+<div id="detailModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2 id="m-lotto-titolo" style="color: var(--accent-color); margin-bottom: 1rem;">Dettaglio Lotto</h2>
+        
+        <form action="{{ url_for('update_lotto') }}" method="post">
+            <input type="hidden" name="lotto_interno" id="m-lotto-val">
+            
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Materia Prima</span>
+                    <select name="codice_mp" id="m-codice-mp">
+                        {% for mp in materie %}
+                            <option value="{{ mp['codice'] }}">{{ mp['nome_mp'] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="detail-item"><span class="detail-label">Data Arrivo</span><input type="date" name="data_arrivo" id="m-data-arrivo"></div>
+                <div class="detail-item"><span class="detail-label">Data Scadenza</span><input type="date" name="data_scadenza" id="m-data-scad"></div>
+                
+                <div class="detail-item"><span class="detail-label">Fornitore</span><input type="text" name="fornitore" id="m-fornitore"></div>
+                <div class="detail-item"><span class="detail-label">Lotto Fornitore</span><input type="text" name="lotto_fornitore" id="m-lotto-forn"></div>
+                <div class="detail-item"><span class="detail-label">Codice Lotto</span><input type="text" name="codice_lotto" id="m-cod-lotto"></div>
+
+                <div class="detail-item"><span class="detail-label">Qnt Arrivata</span><input type="text" name="qnt_arrivata" id="m-qnt"></div>
+                <div class="detail-item"><span class="detail-label">Pz x cf</span><input type="text" name="pz_x_cf" id="m-pz"></div>
+                <div class="detail-item"><span class="detail-label">Giacenza (Auto)</span><input type="text" name="giacenza" id="m-giacenza" readonly style="background: rgba(0,0,0,0.2); cursor: not-allowed;"></div>
+
+                <div class="detail-item"><span class="detail-label">Consegna QC</span><input type="date" name="data_consegna_qc" id="m-qc"></div>
+                <div class="detail-item"><span class="detail-label">Approvazione</span><input type="date" name="data_approvazione" id="m-appr-data"></div>
+                <div class="detail-item"><span class="detail-label">Arrivo Magazzino</span><input type="date" name="arrivo_magazzino" id="m-mag"></div>
+
+                <div class="detail-item"><span class="detail-label">Consumi (Auto)</span><input type="text" name="consumi" id="m-consumi" readonly style="background: rgba(0,0,0,0.2); cursor: not-allowed;"></div>
+                <div class="detail-item"><span class="detail-label">C.A.</span><input type="text" name="ca" id="m-ca"></div>
+                <div class="detail-item"><span class="detail-label">Reparto</span><input type="text" name="reparto" id="m-rep"></div>
+
+                <div class="detail-item"><span class="detail-label">Appr. (Auto)</span><input type="text" name="appr" id="m-appr" readonly style="background: rgba(0,0,0,0.2); cursor: not-allowed;"></div>
+                <div class="detail-item"><span class="detail-label">Etich. (Auto)</span><input type="text" name="etich" id="m-etich" readonly style="background: rgba(0,0,0,0.2); cursor: not-allowed;"></div>
+                <div class="detail-item"><span class="detail-label">CC (Auto)</span><input type="text" name="cc" id="m-cc" readonly style="background: rgba(0,0,0,0.2); cursor: not-allowed;"></div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">💾 Salva Modifiche</button>
+                <button type="button" class="btn" style="background: rgba(255,255,255,0.05); color: white;" onclick="closeModal()">Annulla</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#lottiTable').DataTable({
+            "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json" },
+            "pageLength": 25,
+            "order": [[ 2, "desc" ]]
+        });
+    });
+
+    function showDetails(lotto) {
+        document.getElementById('m-lotto-titolo').innerText = "Modifica Lotto: " + lotto.lotto_interno;
+        document.getElementById('m-lotto-val').value = lotto.lotto_interno;
+        
+        document.getElementById('m-codice-mp').value = lotto.codice_mp || '';
+        document.getElementById('m-data-arrivo').value = lotto.data_arrivo || '';
+        document.getElementById('m-data-scad').value = lotto.data_scadenza || '';
+        document.getElementById('m-fornitore').value = lotto.fornitore || '';
+        document.getElementById('m-lotto-forn').value = lotto.lotto_fornitore || '';
+        document.getElementById('m-cod-lotto').value = lotto.codice_lotto || '';
+        document.getElementById('m-qnt').value = lotto.qnt_arrivata || '';
+        document.getElementById('m-pz').value = lotto.pz_x_cf || '';
+        document.getElementById('m-giacenza').value = lotto.giacenza || '';
+        document.getElementById('m-qc').value = lotto.data_consegna_qc || '';
+        document.getElementById('m-appr-data').value = lotto.data_approvazione || '';
+        document.getElementById('m-mag').value = lotto.arrivo_magazzino || '';
+        document.getElementById('m-consumi').value = lotto.consumi || '';
+        document.getElementById('m-ca').value = lotto.ca || '';
+        document.getElementById('m-rep').value = lotto.reparto || '';
+        document.getElementById('m-appr').value = lotto.appr || '';
+        document.getElementById('m-etich').value = lotto.etich || '';
+        document.getElementById('m-cc').value = lotto.cc || '';
+        
+        document.getElementById('detailModal').style.display = "block";
+    }
+
+    function closeModal() {
+        document.getElementById('detailModal').style.display = "none";
+    }
+
+    window.onclick = function(event) {
+        let modal = document.getElementById('detailModal');
+        if (event.target == modal) closeModal();
+    }
+</script>
+{% endblock %}
