@@ -93,8 +93,8 @@
             <tr onclick="showDetails({{ lotto | tojson | forceescape }})">
                 <td><span class="badge" style="background: rgba(129, 140, 248, 0.1); color: #818cf8;">{{ lotto['lotto_interno'] }}</span></td>
                 <td><strong>{{ lotto['nome_mp'] or 'N.D.' }}</strong></td>
-                <td><small>{{ lotto['data_arrivo']|format_date }}</small></td>
-                <td><small>{{ lotto['data_scadenza']|format_date }}</small></td>
+                <td><small>{{ lotto['data_arrivo'] | dateformat }}</small></td>
+                <td><small>{{ lotto['data_scadenza'] | dateformat }}</small></td>
                 <td><strong style="color: var(--accent-color)">{{ lotto['giacenza'] or '-' }}</strong></td>
                 <td>{% if lotto['appr']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
                 <td>{% if lotto['etich']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>

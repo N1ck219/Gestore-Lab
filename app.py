@@ -14,16 +14,31 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-@app.template_filter('format_date')
-def format_date_filter(value):
+@app.template_filter('dateformat')
+def dateformat_filter(value, format='%d-%m-%Y'):
     if not value or value == '-':
-        return "-"
+        return value
     try:
         # Tenta di convertire da YYYY-MM-DD a DD-MM-YYYY
-        dt = datetime.strptime(str(value), '%Y-%m-%d')
-        return dt.strftime('%d-%m-%Y')
+        dt = datetime.strptime(value, '%Y-%m-%d')
+        return dt.strftime(format)
     except:
         return value
+
+@app.template_filter('format_date')
+def format_date_filter(value):
+    if not value:
+        return ""
+    try:
+        # Se è già in formato DD-MM-YYYY lo restituiamo
+        if len(value) == 10 and value[2] == '-' and value[5] == '-':
+            return value
+        return datetime.strptime(value, '%Y-%m-%d').strftime('%d-%m-%p').replace('-PM', '-').replace('-AM', '-') # Fix per alcuni sistemi, ma usiamo quello standard:
+    except:
+        try:
+            return datetime.strptime(value, '%Y-%m-%d').strftime('%d-%m-%Y')
+        except:
+            return value
 
 @app.route('/')
 def index():
@@ -158,7 +173,7 @@ def update_lotto():
 @app.route('/add_lotto', methods=('GET', 'POST'))
 def add_lotto():
     from datetime import date
-    today = date.today().strftime('%Y-%m-%d')
+    today = date.today().strftime('%d-%m-%Y')
     conn = get_db_connection()
     materie = conn.execute('SELECT codice, nome_mp FROM Elenco_MP ORDER BY nome_mp ASC').fetchall()
     fornitori = conn.execute('SELECT nome FROM Fornitori ORDER BY nome ASC').fetchall()
@@ -564,16 +579,15 @@ def save_picking_pdf():
         data = request.get_json()
         group_id = data.get('group_id')
         batch = data.get('batch', 'N/A')
-        raw_date = data.get('date', 'N/A')
+        data_scarico = data.get('date', 'N/A')
+        # Formattazione data per il PDF (da YYYY-MM-DD a DD-MM-YYYY)
+        try:
+            dt_display = datetime.strptime(data_scarico, '%Y-%m-%d').strftime('%d-%m-%Y')
+        except:
+            dt_display = data_scarico
+            
         operatore = data.get('operatore', 'N/A')
         items = data.get('items', [])
-        
-        # Formattazione data per PDF (da YYYY-MM-DD a DD-MM-YYYY)
-        try:
-            dt_obj = datetime.strptime(raw_date, '%Y-%m-%d')
-            data_scarico = dt_obj.strftime('%d-%m-%Y')
-        except:
-            data_scarico = raw_date
 
         # Directory di salvataggio
         save_dir = r"D:\python\Gestore-Lab\picking list"
@@ -602,7 +616,7 @@ def save_picking_pdf():
         pdf.line(10, 30, 60, 30) # Linea sotto logo
         pdf.set_font("helvetica", size=7)
         pdf.set_xy(10, 30)
-        pdf.multi_cell(50, 5, "SOP di riferimento: \nxxx", align="C")
+        pdf.multi_cell(50, 5, f"SOP di riferimento: \nxxx", align="C")
         
         # Middle Section (Allegato + Title)
         pdf.line(150, 10, 150, 40)
@@ -627,7 +641,7 @@ def save_picking_pdf():
         pdf.cell(30, 8, batch, border=1, new_x="LMARGIN", new_y="NEXT")
         pdf.set_x(130)
         pdf.cell(40, 8, "Date:", border=1)
-        pdf.cell(30, 8, data_scarico, border=1, new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(30, 8, dt_display, border=1, new_x="LMARGIN", new_y="NEXT")
 
         # Table
         pdf.ln(10)
@@ -641,12 +655,18 @@ def save_picking_pdf():
 
         pdf.set_font("helvetica", size=8)
         for item in items:
+            # Formatta la scadenza dell'item per il PDF
+            try:
+                scad_display = datetime.strptime(item['data_scad'], '%Y-%m-%d').strftime('%d-%m-%Y')
+            except:
+                scad_display = item['data_scad']
+
             pdf.cell(10, 7, str(item['num']), border=1, align="C")
             pdf.cell(25, 7, str(item['codice']), border=1, align="C")
             pdf.cell(85, 7, str(item['articolo']), border=1)
             pdf.cell(20, 7, str(item['quantita']), border=1, align="C")
             pdf.cell(30, 7, str(item['lotto_n']), border=1, align="C")
-            pdf.cell(20, 7, str(item['data_scad']), border=1, align="C", new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(20, 7, scad_display, border=1, align="C", new_x="LMARGIN", new_y="NEXT")
 
         # Footer
         pdf.ln(10)
@@ -661,7 +681,7 @@ def save_picking_pdf():
         
         pdf.set_font("helvetica", "B", 10)
         pdf.cell(63, 10, operatore, border=1)
-        pdf.cell(63, 10, data_scarico, border=1)
+        pdf.cell(63, 10, dt_display, border=1)
         pdf.cell(64, 10, "", border=1, new_x="LMARGIN", new_y="NEXT")
 
         pdf.ln(5)

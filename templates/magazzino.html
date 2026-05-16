@@ -228,15 +228,6 @@
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
-    function formatDateJS(dateStr) {
-        if (!dateStr || dateStr === '-') return '-';
-        const parts = dateStr.split('-');
-        if (parts.length === 3) {
-            return `${parts[2]}-${parts[1]}-${parts[0]}`;
-        }
-        return dateStr;
-    }
-
     $(document).ready(function() {
         $('#magazzinoTable').DataTable({
             "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json" },
@@ -267,16 +258,23 @@
                 data.lotti.forEach(lotto => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>${formatDateJS(lotto.arrivo_magazzino)}</td>
+                        <td>${formatDate(lotto.arrivo_magazzino) || '-'}</td>
                         <td><span class="badge" style="background: rgba(129, 140, 248, 0.1); color: #818cf8;">${lotto.lotto_interno}</span></td>
                         <td>${lotto.lotto_fornitore || '-'}</td>
                         <td style="font-weight:bold;">${lotto.qnt_arrivata || '0'}</td>
-                        <td>${formatDateJS(lotto.data_scadenza)}</td>
+                        <td>${formatDate(lotto.data_scadenza) || '-'}</td>
                         <td class="placeholder-cell"></td><td class="placeholder-cell"></td><td class="placeholder-cell"></td><td class="placeholder-cell"></td>
                     `;
                     tbody.appendChild(tr);
                 });
             });
+    }
+
+    function formatDate(isoDate) {
+        if (!isoDate || isoDate === '-') return isoDate;
+        const parts = isoDate.split('-');
+        if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        return isoDate;
     }
 
     function closeBatchModal() { document.getElementById('batchModal').style.display = 'none'; }

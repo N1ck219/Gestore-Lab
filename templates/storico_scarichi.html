@@ -291,7 +291,7 @@
     {% for group in scarichi %}
     <div class="history-card" id="{{ group.id }}" onclick="toggleDetails(this)">
         <div class="card-header">
-            <div class="card-date">{{ group.data | format_date }}</div>
+            <div class="card-date">{{ group.data | dateformat }}</div>
             <div class="card-type">
                 <span class="type-badge {{ 'badge-man' if group.tipologia == 'Manuale' else 'badge-fdg' }}">
                     {{ group.tipologia }}
@@ -342,12 +342,12 @@
                     </thead>
                     <tbody>
                         {% for item in group.dettagli %}
-                        <tr data-codice="{{ item.materiale_codice }}" data-scadenza="{{ item.data_scadenza | format_date if item.data_scadenza else '#N/D' }}">
+                        <tr data-codice="{{ item.materiale_codice }}" data-scadenza="{{ item.data_scadenza | dateformat if item.data_scadenza else '#N/D' }}">
                             <td><strong>{{ item.nome_mp }}</strong></td>
                             <td><span class="badge" style="background: rgba(255,255,255,0.05);">{{ item.lotto_interno }}</span></td>
                             <td style="color: #f87171; font-weight: bold;">- {{ item.quantita }}</td>
                             {% if group.tipologia == 'Manuale' %}
-                            <td>{{ item.data_ultimo_utilizzo | format_date }}</td>
+                            <td>{{ item.data_ultimo_utilizzo | dateformat }}</td>
                             {% endif %}
                         </tr>
                         {% endfor %}

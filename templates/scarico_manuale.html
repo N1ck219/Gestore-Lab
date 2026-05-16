@@ -428,7 +428,7 @@
                                         <span style="color: #df137e;">${l.giacenza}</span>
                                     </div>
                                     <div class="lotto-sub-info" style="font-size: 0.7rem;">
-                                        <span>Scad: ${formatDateJS(l.data_scadenza)}</span>
+                                        <span>Scad: ${l.data_scadenza || 'N/A'}</span>
                                     </div>
                                 </div>`;
                         });
@@ -650,7 +650,7 @@
                                 <span style="color: #df137e;">${lotto.giacenza} disponibili</span>
                             </div>
                             <div class="lotto-sub-info">
-                                <span>Scadenza: ${formatDateJS(lotto.data_scadenza)}</span>
+                                <span>Scadenza: ${lotto.data_scadenza || 'N/A'}</span>
                                 <span>Lotto Forn: ${lotto.lotto_fornitore || '-'}</span>
                             </div>
                         `;
