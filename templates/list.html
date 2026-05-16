@@ -22,16 +22,19 @@
     .dataTables_filter input { width: 300px; padding: 10px; }
 </style>
 
-<div style="margin-bottom: 2rem;">
-    <h2>📋 Elenco Completo Materie Prime</h2>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+    <h2 style="margin: 0;">📋 Elenco Completo Materie Prime</h2>
+    <a href="{{ url_for('add') }}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+        <span>➕ Nuova Materia Prima</span>
+    </a>
 </div>
 
 <div class="table-container" style="padding: 1.5rem;">
     <table id="mpTable" class="display">
         <thead>
             <tr>
-                <th>Codice</th>
                 <th>Nome Materia Prima</th>
+                <th>Codice</th>
                 <th>Unità</th>
                 <th>Uso</th>
                 <th>Etichetta</th>
@@ -41,8 +44,8 @@
         <tbody>
             {% for product in products %}
             <tr>
-                <td><span class="badge">{{ product['codice'] }}</span></td>
                 <td><strong>{{ product['nome_mp'] }}</strong></td>
+                <td><span class="badge">{{ product['codice'] }}</span></td>
                 <td>{{ product['unita_misura'] }}</td>
                 <td>{{ product['uso'] }}</td>
                 <td><small>{{ product['nome_etichetta'] or '-' }}</small></td>
@@ -63,7 +66,7 @@
                 "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json"
             },
             "pageLength": 25,
-            "order": [[ 1, "asc" ]] // Ordina per Nome Materia Prima di default
+            "order": [[ 0, "asc" ]] // Ordina per Nome Materia Prima (ora colonna 0)
         });
     });
 </script>

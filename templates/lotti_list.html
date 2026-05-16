@@ -67,8 +67,11 @@
     }
 </style>
 
-<div style="margin-bottom: 2rem;">
-    <h2>📦 Registro Lotti</h2>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+    <h2 style="margin: 0;">📦 Registro Lotti</h2>
+    <a href="{{ url_for('add_lotto') }}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+        <span>➕ Nuovo Lotto</span>
+    </a>
 </div>
 
 <div class="table-container" style="padding: 1.5rem;">
@@ -90,8 +93,8 @@
             <tr onclick="showDetails({{ lotto | tojson | forceescape }})">
                 <td><span class="badge" style="background: rgba(129, 140, 248, 0.1); color: #818cf8;">{{ lotto['lotto_interno'] }}</span></td>
                 <td><strong>{{ lotto['nome_mp'] or 'N.D.' }}</strong></td>
-                <td><small>{{ lotto['data_arrivo'] }}</small></td>
-                <td><small>{{ lotto['data_scadenza'] }}</small></td>
+                <td><small>{{ lotto['data_arrivo']|format_date }}</small></td>
+                <td><small>{{ lotto['data_scadenza']|format_date }}</small></td>
                 <td><strong style="color: var(--accent-color)">{{ lotto['giacenza'] or '-' }}</strong></td>
                 <td>{% if lotto['appr']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
                 <td>{% if lotto['etich']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>

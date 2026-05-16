@@ -79,7 +79,10 @@ def import_data():
             uso TEXT,
             codice_fornitore TEXT,
             controcampione TEXT,
-            distribuzione TEXT
+            distribuzione TEXT,
+            scorta_minima FLOAT DEFAULT 0,
+            ordine_magazzino INTEGER DEFAULT 999,
+            categoria_magazzino TEXT
         )
         """
         cursor.execute(create_table_query)

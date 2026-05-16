@@ -68,11 +68,11 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
             <div class="form-group">
                 <label for="data_arrivo">Data Arrivo *</label>
-                <input type="date" name="data_arrivo" id="data_arrivo" value="{{ today }}" required>
+                <input type="date" name="data_arrivo" id="data_arrivo" value="{{ form_data.data_arrivo if form_data else today }}" required>
             </div>
             <div class="form-group">
                 <label for="data_scadenza">Data Scadenza *</label>
-                <input type="date" name="data_scadenza" id="data_scadenza" required>
+                <input type="date" name="data_scadenza" id="data_scadenza" value="{{ form_data.data_scadenza if form_data else '' }}" required>
             </div>
         </div>
 
@@ -80,8 +80,9 @@
         <div style="display: grid; grid-template-columns: 1fr 120px; gap: 1.5rem; margin-bottom: 1.5rem; align-items: flex-end;">
             <div class="form-group search-container">
                 <label for="mp_search">Cerca Materia Prima *</label>
-                <input type="text" id="mp_search" placeholder="Scrivi il nome o il codice..." autocomplete="off" required>
-                <input type="hidden" name="codice_mp" id="codice_mp_hidden" required>
+                <input type="text" id="mp_search" name="mp_search" placeholder="Scrivi il nome o il codice..." autocomplete="off" required 
+                       value="{{ form_data.mp_search if form_data else '' }}">
+                <input type="hidden" name="codice_mp" id="codice_mp_hidden" required value="{{ form_data.codice_mp if form_data else '' }}">
                 
                 <div id="mpResults" class="search-results">
                     {% for mp in materie %}
@@ -98,6 +99,7 @@
             <div class="form-group">
                 <label>Codice</label>
                 <input type="text" id="display_codice" readonly placeholder="---" 
+                       value="{{ form_data.codice_mp if form_data else '---' }}"
                        style="background: rgba(0,0,0,0.3); cursor: not-allowed; text-align: center; border-color: rgba(255,255,255,0.1);">
             </div>
         </div>
@@ -105,7 +107,8 @@
         <!-- RIGA 3: RICERCA FORNITORE -->
         <div class="form-group search-container" style="margin-bottom: 1.5rem;">
             <label for="fornitore_search">Fornitore *</label>
-            <input type="text" name="fornitore" id="fornitore_search" placeholder="Cerca o aggiungi fornitore..." autocomplete="off" required>
+            <input type="text" name="fornitore" id="fornitore_search" placeholder="Cerca o aggiungi fornitore..." autocomplete="off" required
+                   value="{{ form_data.fornitore if form_data else '' }}">
             
             <div id="fornitoriResults" class="search-results">
                 <div class="result-item btn-add-new" onclick="openFornitoreModal()">➕ Aggiungi Nuovo Fornitore</div>
@@ -121,11 +124,13 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
             <div class="form-group">
                 <label for="lotto_interno">Lotto Interno *</label>
-                <input type="text" name="lotto_interno" id="lotto_interno" placeholder="Es. UDN/XXX-YY" required>
+                <input type="text" name="lotto_interno" id="lotto_interno" placeholder="Es. UDN/XXX-YY" required
+                       value="{{ form_data.lotto_interno if form_data else '' }}">
             </div>
             <div class="form-group">
                 <label for="lotto_fornitore">Lotto Fornitore *</label>
-                <input type="text" name="lotto_fornitore" id="lotto_fornitore" placeholder="Lotto originale" required>
+                <input type="text" name="lotto_fornitore" id="lotto_fornitore" placeholder="Lotto originale" required
+                       value="{{ form_data.lotto_fornitore if form_data else '' }}">
             </div>
         </div>
 
@@ -133,11 +138,13 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
             <div class="form-group">
                 <label for="qnt_arrivata">Quantità Arrivata *</label>
-                <input type="text" name="qnt_arrivata" id="qnt_arrivata" placeholder="Es. 500" required>
+                <input type="text" name="qnt_arrivata" id="qnt_arrivata" placeholder="Es. 500" required
+                       value="{{ form_data.qnt_arrivata if form_data else '' }}">
             </div>
             <div class="form-group">
                 <label for="pz_x_cf">Pezzi x cf *</label>
-                <input type="text" name="pz_x_cf" id="pz_x_cf" placeholder="Es. 10" required>
+                <input type="text" name="pz_x_cf" id="pz_x_cf" placeholder="Es. 10" required
+                       value="{{ form_data.pz_x_cf if form_data else '' }}">
             </div>
         </div>
         
