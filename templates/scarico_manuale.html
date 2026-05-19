@@ -184,7 +184,43 @@
                     <span class="item-code">EXCEL/REPORT</span>
                 </div>
                 <div class="result-item" onclick="selectMode('FDG')">
-                    <span>🧪 Picking FDG</span>
+                    <span>🧪 Picking FDG (Synthera)</span>
+                    <span class="item-code">PROCEDURA</span>
+                </div>
+                <div class="result-item" onclick="selectMode('FDG_TRASIS')">
+                    <span>🧪 Picking FDG TRASIS</span>
+                    <span class="item-code">PROCEDURA</span>
+                </div>
+                <div class="result-item" onclick="selectMode('FBB')">
+                    <span>🧪 Picking FBB</span>
+                    <span class="item-code">PROCEDURA</span>
+                </div>
+                <div class="result-item" onclick="selectMode('FBB_TRASIS')">
+                    <span>🧪 Picking FBB TRASIS</span>
+                    <span class="item-code">PROCEDURA</span>
+                </div>
+                <div class="result-item" onclick="selectMode('FET')">
+                    <span>🧪 Picking FET</span>
+                    <span class="item-code">PROCEDURA</span>
+                </div>
+                <div class="result-item" onclick="selectMode('DOTA')">
+                    <span>🧪 Picking DOTA</span>
+                    <span class="item-code">PROCEDURA</span>
+                </div>
+                <div class="result-item" onclick="selectMode('PYL')">
+                    <span>🧪 Picking PYL</span>
+                    <span class="item-code">PROCEDURA</span>
+                </div>
+                <div class="result-item" onclick="selectMode('FCH')">
+                    <span>🧪 Picking FCH</span>
+                    <span class="item-code">PROCEDURA</span>
+                </div>
+                <div class="result-item" onclick="selectMode('FMC')">
+                    <span>🧪 Picking FMC</span>
+                    <span class="item-code">PROCEDURA</span>
+                </div>
+                <div class="result-item" onclick="selectMode('FMC_KIT_ACC')">
+                    <span>🧪 Picking FMC KIT ACC</span>
                     <span class="item-code">PROCEDURA</span>
                 </div>
             </div>
@@ -241,9 +277,12 @@
 
             <!-- SELEZIONE LOTTO -->
             <div class="form-group" style="margin-bottom: 2rem;">
-                <label>Seleziona Lotto Interno *</label>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label style="margin-bottom: 0;">Seleziona Lotto Interno *</label>
+                    <span id="selected_lotto_info" style="font-size: 0.85rem; color: #df137e; font-weight: bold;"></span>
+                </div>
                 <input type="hidden" name="lotto_interno" id="lotto_interno_hidden" required value="{{ form_data.lotto_interno if form_data else '' }}">
-                <div id="lotto_list" class="lotto-list-container">
+                <div id="lotto_list" class="lotto-list-container" style="margin-top: 0.5rem;">
                     <div style="padding: 2rem; text-align: center; color: var(--text-secondary); font-style: italic;">
                         -- Seleziona prima la materia prima per vedere i lotti disponibili --
                     </div>
@@ -360,7 +399,7 @@
 
         <div style="display: flex; flex-direction: column; gap: 1rem;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <button type="button" class="btn-gradient" onclick="submitFDG()">REGISTRA PICKING FDG</button>
+                <button type="button" id="fdg_submit_btn" class="btn-gradient" onclick="submitFDG()">REGISTRA PICKING FDG</button>
             </div>
         </div>
     </div>
@@ -376,15 +415,63 @@
     modeSearch.addEventListener('focus', () => { modeResults.style.display = 'block'; });
 
     function selectMode(mode) {
-        modeSearch.value = mode === 'FDG' ? "Picking FDG" : "Scarico " + mode;
+        if (mode === 'FDG') {
+            modeSearch.value = "Picking FDG (Synthera)";
+        } else if (mode === 'FDG_TRASIS') {
+            modeSearch.value = "Picking FDG TRASIS";
+        } else if (mode === 'FBB') {
+            modeSearch.value = "Picking FBB";
+        } else if (mode === 'FBB_TRASIS') {
+            modeSearch.value = "Picking FBB TRASIS";
+        } else if (mode === 'FET') {
+            modeSearch.value = "Picking FET";
+        } else if (mode === 'DOTA') {
+            modeSearch.value = "Picking DOTA";
+        } else if (mode === 'PYL') {
+            modeSearch.value = "Picking PYL";
+        } else if (mode === 'FCH') {
+            modeSearch.value = "Picking FCH";
+        } else if (mode === 'FMC') {
+            modeSearch.value = "Picking FMC";
+        } else if (mode === 'FMC_KIT_ACC') {
+            modeSearch.value = "Picking FMC KIT ACC";
+        } else {
+            modeSearch.value = "Scarico " + mode;
+        }
+        
         modeResults.style.display = 'none';
         
         sectionManual.style.display = (mode === 'Manuale') ? 'block' : 'none';
         sectionAuto.style.display = (mode === 'Automatico') ? 'block' : 'none';
-        sectionFDG.style.display = (mode === 'FDG') ? 'block' : 'none';
+        sectionFDG.style.display = (mode === 'FDG' || mode === 'FDG_TRASIS' || mode === 'FBB' || mode === 'FBB_TRASIS' || mode === 'FET' || mode === 'DOTA' || mode === 'PYL' || mode === 'FCH' || mode === 'FMC' || mode === 'FMC_KIT_ACC') ? 'block' : 'none';
 
-        if (mode === 'FDG') {
-            loadFDGItems();
+        const submitBtn = document.getElementById('fdg_submit_btn');
+        if (submitBtn) {
+            if (mode === 'FDG_TRASIS') {
+                submitBtn.textContent = 'REGISTRA PICKING FDG TRASIS';
+            } else if (mode === 'FBB') {
+                submitBtn.textContent = 'REGISTRA PICKING FBB';
+            } else if (mode === 'FBB_TRASIS') {
+                submitBtn.textContent = 'REGISTRA PICKING FBB TRASIS';
+            } else if (mode === 'FET') {
+                submitBtn.textContent = 'REGISTRA PICKING FET';
+            } else if (mode === 'DOTA') {
+                submitBtn.textContent = 'REGISTRA PICKING DOTA';
+            } else if (mode === 'PYL') {
+                submitBtn.textContent = 'REGISTRA PICKING PYL';
+            } else if (mode === 'FCH') {
+                submitBtn.textContent = 'REGISTRA PICKING FCH';
+            } else if (mode === 'FMC') {
+                submitBtn.textContent = 'REGISTRA PICKING FMC';
+            } else if (mode === 'FMC_KIT_ACC') {
+                submitBtn.textContent = 'REGISTRA PICKING FMC KIT ACC';
+            } else {
+                submitBtn.textContent = 'REGISTRA PICKING FDG';
+            }
+        }
+
+        if (mode === 'FDG' || mode === 'FDG_TRASIS' || mode === 'FBB' || mode === 'FBB_TRASIS' || mode === 'FET' || mode === 'DOTA' || mode === 'PYL' || mode === 'FCH' || mode === 'FMC' || mode === 'FMC_KIT_ACC') {
+            loadFDGItems(mode);
         }
     }
 
@@ -400,11 +487,32 @@
         });
     });
 
-    function loadFDGItems() {
+    function loadFDGItems(mode = 'FDG') {
         const body = document.getElementById('fdg_items_body');
         body.innerHTML = '<tr><td colspan="3" style="padding: 2rem; text-align: center;">Caricamento componenti...</td></tr>';
         
-        fetch('/api/materie_fdg')
+        let apiUrl = '/api/materie_fdg';
+        if (mode === 'FDG_TRASIS') {
+            apiUrl = '/api/materie_trasis';
+        } else if (mode === 'FBB') {
+            apiUrl = '/api/materie_fbb';
+        } else if (mode === 'FBB_TRASIS') {
+            apiUrl = '/api/materie_fbb_trasis';
+        } else if (mode === 'FET') {
+            apiUrl = '/api/materie_fet';
+        } else if (mode === 'DOTA') {
+            apiUrl = '/api/materie_dota';
+        } else if (mode === 'PYL') {
+            apiUrl = '/api/materie_pyl';
+        } else if (mode === 'FCH') {
+            apiUrl = '/api/materie_fch';
+        } else if (mode === 'FMC') {
+            apiUrl = '/api/materie_fmc';
+        } else if (mode === 'FMC_KIT_ACC') {
+            apiUrl = '/api/materie_fmc_kit_acc';
+        }
+        
+        fetch(apiUrl)
             .then(res => res.json())
             .then(data => {
                 body.innerHTML = '';
@@ -412,17 +520,41 @@
                     const tr = document.createElement('tr');
                     tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
                     
-                    let qntHtml = m.qnt ? `<span>${m.qnt}</span>` : `<input type="number" step="0.01" class="fdg-qnt-input" data-codice="${m.codice}" placeholder="Inserisci" style="width: 80px; padding: 4px;">`;
+                    let qntHtml = `<input type="text" inputmode="decimal" class="fdg-qnt-input" data-codice="${m.codice}" value="${m.qnt || ''}" placeholder="Inserisci" style="width: 80px; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: white;">`;
                     
+                    // Trova in automatico il lotto più vecchio (primo nella lista) con quantità sufficiente
+                    let selectedLotto = null;
+                    if (m.lotti && m.lotti.length > 0) {
+                        const standardQnt = parseFloat(m.qnt) || 0.0;
+                        for (let i = 0; i < m.lotti.length; i++) {
+                            const l = m.lotti[i];
+                            const giac = parseFloat(l.giacenza) || 0.0;
+                            if (giac >= standardQnt) {
+                                selectedLotto = l;
+                                break;
+                            }
+                        }
+                        if (!selectedLotto) {
+                            selectedLotto = m.lotti[0];
+                        }
+                    }
+
+                    let dropdownLabel = '-- Seleziona Lotto --';
+                    let hiddenLottoValue = '';
+                    if (selectedLotto) {
+                        dropdownLabel = `${selectedLotto.lotto_interno} (Giac: ${selectedLotto.giacenza} - Scad: ${selectedLotto.data_scadenza || 'N/A'})`;
+                        hiddenLottoValue = selectedLotto.lotto_interno;
+                    }
+
                     let lottiHtml = `
                         <div class="custom-dropdown" data-codice="${m.codice}" data-standard-qnt="${m.qnt || ''}">
-                            <div class="dropdown-selected" onclick="toggleFDGDropdown(this)">-- Seleziona Lotto --</div>
+                            <div class="dropdown-selected" onclick="toggleFDGDropdown(this)">${dropdownLabel}</div>
                             <div class="dropdown-list">`;
                     
                     if (m.lotti && m.lotti.length > 0) {
                         m.lotti.forEach(l => {
                             lottiHtml += `
-                                <div class="lotto-item" onclick="selectFDGLotto(this, '${l.lotto_interno}', '${m.codice}')">
+                                <div class="lotto-item" data-giacenza="${l.giacenza}" data-scadenza="${l.data_scadenza || 'N/A'}" onclick="selectFDGLotto(this, '${l.lotto_interno}', '${m.codice}')">
                                     <div class="lotto-main-info" style="font-size: 0.85rem;">
                                         <span>${l.lotto_interno}</span>
                                         <span style="color: #df137e;">${l.giacenza}</span>
@@ -438,7 +570,7 @@
                     
                     lottiHtml += `
                             </div>
-                            <input type="hidden" class="fdg-lotto-input" data-codice="${m.codice}">
+                            <input type="hidden" class="fdg-lotto-input" data-codice="${m.codice}" value="${hiddenLottoValue}">
                         </div>`;
 
                     tr.innerHTML = `
@@ -448,6 +580,47 @@
                     `;
                     body.appendChild(tr);
                 });
+
+                // Attacca l'ascoltatore di eventi per ricalcolare automaticamente il lotto ideale in base alla nuova quantità digitata
+                const itemsBody = document.getElementById('fdg_items_body');
+                if (itemsBody && !itemsBody.dataset.listenerAttached) {
+                    itemsBody.addEventListener('input', function(e) {
+                        if (e.target.classList.contains('fdg-qnt-input')) {
+                            const input = e.target;
+                            const newQnt = parseFloat(input.value.trim().replace(',', '.')) || 0.0;
+                            const tr = input.closest('tr');
+                            const dropdown = tr.querySelector('.custom-dropdown');
+                            if (dropdown) {
+                                const lotItems = dropdown.querySelectorAll('.dropdown-list .lotto-item');
+                                const currentSelectedInput = dropdown.querySelector('.fdg-lotto-input');
+                                const dropdownSelectedLabel = dropdown.querySelector('.dropdown-selected');
+                                
+                                if (lotItems.length > 0) {
+                                    let bestLottoItem = null;
+                                    for (let i = 0; i < lotItems.length; i++) {
+                                        const item = lotItems[i];
+                                        const giac = parseFloat(item.getAttribute('data-giacenza')) || 0.0;
+                                        if (giac >= newQnt) {
+                                            bestLottoItem = item;
+                                            break;
+                                        }
+                                    }
+                                    if (!bestLottoItem) {
+                                        bestLottoItem = lotItems[0];
+                                    }
+                                    
+                                    const lotto = bestLottoItem.querySelector('.lotto-main-info span:first-child').textContent;
+                                    const giacenza = bestLottoItem.getAttribute('data-giacenza') || '0';
+                                    const scadenza = bestLottoItem.getAttribute('data-scadenza') || 'N/A';
+                                    
+                                    dropdownSelectedLabel.textContent = `${lotto} (Giac: ${giacenza} - Scad: ${scadenza})`;
+                                    currentSelectedInput.value = lotto;
+                                }
+                            }
+                        }
+                    });
+                    itemsBody.dataset.listenerAttached = "true";
+                }
             });
     }
 
@@ -468,29 +641,42 @@
 
         const items = [];
         const missingItems = [];
+        const invalidQuantities = [];
 
         document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
             const codice = dropdown.getAttribute('data-codice');
             const nome = dropdown.closest('tr').cells[0].textContent;
             const lotto = dropdown.querySelector('.fdg-lotto-input').value;
-            let qnt;
             
             const qntInput = document.querySelector(`.fdg-qnt-input[data-codice="${codice}"]`);
-            if (qntInput) {
-                qnt = qntInput.value;
+            const qntStr = qntInput ? qntInput.value.trim() : '';
+
+            if (!lotto) {
+                missingItems.push(`${nome} (Lotto non selezionato)`);
+            }
+
+            if (qntStr === '') {
+                missingItems.push(`${nome} (Quantità mancante)`);
             } else {
-                qnt = dropdown.getAttribute('data-standard-qnt');
+                const cleanQntStr = qntStr.replace(',', '.');
+                // Regex check to ensure it's a valid positive number
+                const isValidDecimal = /^[0-9]+(\.[0-9]+)?$/.test(cleanQntStr);
+                if (!isValidDecimal || parseFloat(cleanQntStr) <= 0) {
+                    invalidQuantities.push(`${nome}: "${qntStr}"`);
+                } else {
+                    items.push({ codice_mp: codice, lotto_interno: lotto, quantita: cleanQntStr });
+                }
             }
-
-            if (!lotto || !qnt) {
-                missingItems.push(nome);
-            }
-
-            items.push({ codice_mp: codice, lotto_interno: lotto, quantita: qnt });
         });
 
+        if (invalidQuantities.length > 0) {
+            errorDiv.innerHTML = `❌ Le quantità inserite per i seguenti articoli non sono valide (devono essere numeri decimali positivi maggiori di zero, es. 10 o 4.1):<br><ul>${invalidQuantities.map(i => `<li><strong>${i}</strong></li>`).join('')}</ul>`;
+            errorDiv.style.display = 'block';
+            return;
+        }
+
         if (missingItems.length > 0) {
-            errorDiv.innerHTML = `❌ Mancano dati per i seguenti articoli:<br><ul>${missingItems.map(i => `<li>${i}</li>`).join('')}</ul>`;
+            errorDiv.innerHTML = `❌ Mancano dati per la registrazione:<br><ul>${missingItems.map(i => `<li>${i}</li>`).join('')}</ul>`;
             errorDiv.style.display = 'block';
             return;
         }
@@ -621,15 +807,41 @@
         if (preCode) {
             fetchLotti(preCode, preLotto);
         }
+
+        // Ascolta il cambiamento della quantità per ricalcolare automaticamente il lotto ideale se necessario
+        document.getElementById('quantita').addEventListener('input', function() {
+            const reqQuantita = parseFloat(this.value.trim().replace(',', '.')) || 0.0;
+            const lottoHidden = document.getElementById('lotto_interno_hidden');
+            const selectedLotto = lottoHidden.value;
+            const codiceMp = document.getElementById('materiale_codice_hidden').value;
+            
+            if (codiceMp && selectedLotto) {
+                const activeLottoItem = document.querySelector('.lotto-item.selected');
+                if (activeLottoItem) {
+                    const giacSpan = activeLottoItem.querySelector('.lotto-main-info span:last-child');
+                    if (giacSpan) {
+                        const giac = parseFloat(giacSpan.textContent) || 0.0;
+                        // Se la quantità richiesta supera le disponibilità del lotto selezionato, ricalcola
+                        if (reqQuantita > giac) {
+                            fetchLotti(codiceMp);
+                        }
+                    }
+                }
+            }
+        });
     });
 
     // --- GESTIONE LOTTI ---
     function fetchLotti(codiceMp, selectedLotto = null) {
         const lottoList = document.getElementById('lotto_list');
         const lottoHidden = document.getElementById('lotto_interno_hidden');
+        const lottoInfo = document.getElementById('selected_lotto_info');
+        const reqQuantita = parseFloat(document.getElementById('quantita').value.trim().replace(',', '.')) || 0.0;
         
-        // Non resettiamo lottoHidden se lo stiamo passando come pre-selezionato
-        if (!selectedLotto) lottoHidden.value = '';
+        if (!selectedLotto) {
+            lottoHidden.value = '';
+            if (lottoInfo) lottoInfo.textContent = '';
+        }
         
         lottoList.innerHTML = '<div style="padding: 2rem; text-align: center;">🔄 Caricamento lotti in corso...</div>';
         
@@ -638,12 +850,37 @@
             .then(data => {
                 lottoList.innerHTML = '';
                 if (data.lotti && data.lotti.length > 0) {
+                    // Determina quale lotto pre-selezionare in automatico
+                    let autoLottoCode = selectedLotto;
+                    if (!autoLottoCode) {
+                        // Trova il lotto più vecchio (primo nella lista) che ha abbastanza giacenza
+                        for (let i = 0; i < data.lotti.length; i++) {
+                            const l = data.lotti[i];
+                            const giac = parseFloat(l.giacenza) || 0;
+                            if (giac >= reqQuantita) {
+                                autoLottoCode = l.lotto_interno;
+                                break;
+                            }
+                        }
+                        // Se nessun lotto ha abbastanza quantità, prendi comunque il primo disponibile
+                        if (!autoLottoCode) {
+                            autoLottoCode = data.lotti[0].lotto_interno;
+                        }
+                    }
+
                     data.lotti.forEach(lotto => {
                         const div = document.createElement('div');
                         div.className = 'lotto-item';
-                        if (selectedLotto && lotto.lotto_interno === selectedLotto) {
+                        
+                        const isSelected = autoLottoCode && lotto.lotto_interno === autoLottoCode;
+                        if (isSelected) {
                             div.classList.add('selected');
+                            lottoHidden.value = lotto.lotto_interno;
+                            if (lottoInfo) {
+                                lottoInfo.textContent = `Selezionato: ${lotto.lotto_interno} (Giac: ${lotto.giacenza} - Scad: ${lotto.data_scadenza || 'N/A'})`;
+                            }
                         }
+
                         div.innerHTML = `
                             <div class="lotto-main-info">
                                 <span>${lotto.lotto_interno}</span>
@@ -654,20 +891,26 @@
                                 <span>Lotto Forn: ${lotto.lotto_fornitore || '-'}</span>
                             </div>
                         `;
+                        
                         div.onclick = function() {
                             document.querySelectorAll('.lotto-item').forEach(i => i.classList.remove('selected'));
                             div.classList.add('selected');
                             lottoHidden.value = lotto.lotto_interno;
+                            if (lottoInfo) {
+                                lottoInfo.textContent = `Selezionato: ${lotto.lotto_interno} (Giac: ${lotto.giacenza} - Scad: ${lotto.data_scadenza || 'N/A'})`;
+                            }
                         };
                         lottoList.appendChild(div);
                     });
                 } else {
                     lottoList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #f87171;">❌ Nessun lotto disponibile per questa materia prima.</div>';
+                    if (lottoInfo) lottoInfo.textContent = '';
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 lottoList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #f87171;">Errore nel caricamento lotti.</div>';
+                if (lottoInfo) lottoInfo.textContent = '';
             });
     }
     // --- FUNZIONI FDG CUSTOM DROPDOWN ---
@@ -682,7 +925,10 @@
 
     function selectFDGLotto(itemEl, lotto, codice) {
         const dropdown = itemEl.closest('.custom-dropdown');
-        dropdown.querySelector('.dropdown-selected').textContent = lotto;
+        const giacenza = itemEl.getAttribute('data-giacenza') || '0';
+        const scadenza = itemEl.getAttribute('data-scadenza') || 'N/A';
+        
+        dropdown.querySelector('.dropdown-selected').textContent = `${lotto} (Giac: ${giacenza} - Scad: ${scadenza})`;
         dropdown.querySelector('.fdg-lotto-input').value = lotto;
         dropdown.querySelector('.dropdown-list').style.display = 'none';
     }

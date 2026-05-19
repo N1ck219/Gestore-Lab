@@ -440,9 +440,27 @@ def storico_scarichi():
                     'causale': r['causale'],
                     'tipologia': 'Picking FDG',
                     'materiale_nome': f"Produzione {r['lotto_prod']}",
-                    'dettagli': []
                 }
             fdg_groups[key]['dettagli'].append(r)
+            # Rileva se si tratta di un picking TRASIS o FBB o FET o DOTA o PYL o FCH o FMC o FMC_KIT_ACC controllando la presenza di un componente specifico
+            if r['materiale_codice'] in ('4599', '4600', '4601', '5694', '4602'):
+                fdg_groups[key]['tipologia'] = 'Picking FDG TRASIS'
+            elif r['materiale_codice'] in ('5734', '5736', '5735', '5780', '5177'):
+                fdg_groups[key]['tipologia'] = 'Picking FBB TRASIS'
+            elif r['materiale_codice'] in ('5612', '5611', '5614', '5613', '2073', '4486', '5686', '5659', '5679', '3136', '2691', '5584'):
+                fdg_groups[key]['tipologia'] = 'Picking FET'
+            elif r['materiale_codice'] in ('4482', '4483', '4484', '4523', '4487', '4485', '3945', '4491', '4622'):
+                fdg_groups[key]['tipologia'] = 'Picking DOTA'
+            elif r['materiale_codice'] in ('5365', '5366', '5368', '5367', '5585', '63'):
+                fdg_groups[key]['tipologia'] = 'Picking PYL'
+            elif r['materiale_codice'] in ('5653', '5652', '5651'):
+                fdg_groups[key]['tipologia'] = 'Picking FCH'
+            elif r['materiale_codice'] in ('4663',):
+                fdg_groups[key]['tipologia'] = 'Picking FMC KIT ACC'
+            elif r['materiale_codice'] in ('2266', '2267', '2070', '2263', '2264', '2265', '2046', '2262', '2273', '2381', '2071', '3209'):
+                fdg_groups[key]['tipologia'] = 'Picking FMC'
+            elif r['materiale_codice'] in ('2730', '2731', '2812', '4636'):
+                fdg_groups[key]['tipologia'] = 'Picking FBB'
         else:
             # Scarico manuale - un evento per ogni record
             grouped_list.append({
@@ -469,6 +487,367 @@ def storico_scarichi():
 @app.route('/scarico_automatico')
 def scarico_automatico():
     return render_template('scarico_automatico.html')
+
+@app.route('/api/materie_fmc_kit_acc')
+def api_materie_fmc_kit_acc():
+    # Lista completa di materiali per FMC KIT ACC con codici e quantità standard
+    materie_fmc_kit_acc = [
+        {'codice': '2266', 'nome': 'Colina cassetta Synthera per distillazione', 'qnt': 1},
+        {'codice': '2267', 'nome': 'Colina cassetta Synthera per alchinazione', 'qnt': 1},
+        {'codice': '2070', 'nome': 'Resin cartridge Se (QMA colina)', 'qnt': 1},
+        {'codice': '2263', 'nome': 'Cartucce Silica', 'qnt': 3},
+        {'codice': '2264', 'nome': 'HLB cartucce', 'qnt': 1},
+        {'codice': '2265', 'nome': 'Acell Plus CM (Colina)', 'qnt': 1},
+        {'codice': '2046', 'nome': 'Cryptand Solution', 'qnt': 1},
+        {'codice': '4663', 'nome': 'Kit accessori colina', 'qnt': 1},
+        {'codice': '2273', 'nome': 'DMAE', 'qnt': 2},
+        {'codice': '2073', 'nome': 'Etanolo', 'qnt': 10},
+        {'codice': '2072', 'nome': 'Acetonitrile', 'qnt': 3},
+        {'codice': '2071', 'nome': 'Dibromomethane', 'qnt': 1},
+        {'codice': '3209', 'nome': 'Ammoniaca (colina)', 'qnt': 1},
+        {'codice': '3099', 'nome': 'Vial da 10 ml', 'qnt': 2},
+        {'codice': '3094', 'nome': 'Vial da 4,5 ml', 'qnt': 1},
+        {'codice': '3096', 'nome': 'Vial da 4 ml', 'qnt': 1},
+        {'codice': '3095', 'nome': 'Setti da 13 mm', 'qnt': 1},
+        {'codice': '3097', 'nome': 'Setti da 11 mm', 'qnt': 1},
+        {'codice': '461', 'nome': 'Kit di frazionamento', 'qnt': 1},
+        {'codice': '701', 'nome': 'Sodio cloruro 0,9% (250 ml)', 'qnt': 1},
+        {'codice': '4379', 'nome': 'Flaconi sterili apirogeni crimpati HUAYI', 'qnt': 10},
+        {'codice': '4380', 'nome': 'Capsule sterili HUAYI', 'qnt': 10},
+        {'codice': '2395', 'nome': 'Filtri STERIFIX', 'qnt': 1},
+        {'codice': '1368', 'nome': 'Filtro Millex OR 0.22 micron', 'qnt': 1},
+        {'codice': '605', 'nome': 'Piastre TSA 55 mm', 'qnt': 8},
+        {'codice': '606', 'nome': 'Piastre TSA 90 mm', 'qnt': 6},
+        {'codice': '424', 'nome': 'Acqua arricchita [18O]H2O', 'qnt': 8.1}
+    ]
+    
+    conn = get_db_connection()
+    for item in materie_fmc_kit_acc:
+        # Recupera i lotti disponibili per ogni materia
+        lotti_rows = conn.execute('''
+            SELECT lotto_interno, giacenza, data_scadenza
+            FROM Lotti_Interni 
+            WHERE codice_mp = ? 
+              AND (chiuso IS NULL OR chiuso != "SI" AND chiuso != "X")
+              AND CAST(giacenza AS FLOAT) > 0
+            ORDER BY data_scadenza ASC, data_arrivo ASC
+        ''', (item['codice'],)).fetchall()
+        item['lotti'] = [dict(row) for row in lotti_rows]
+    
+    conn.close()
+    return {'materie': materie_fmc_kit_acc}
+
+@app.route('/api/materie_fmc')
+def api_materie_fmc():
+    # Lista completa di materiali per FMC con codici e quantità standard
+    materie_fmc = [
+        {'codice': '2266', 'nome': 'Colina cassetta Synthera per distillazione', 'qnt': 1},
+        {'codice': '2267', 'nome': 'Colina cassetta Synthera per alchinazione', 'qnt': 1},
+        {'codice': '2070', 'nome': 'Resin cartridge Se (QMA colina)', 'qnt': 1},
+        {'codice': '2263', 'nome': 'Cartucce Silica', 'qnt': 3},
+        {'codice': '2264', 'nome': 'HLB cartucce', 'qnt': 1},
+        {'codice': '2265', 'nome': 'Acell Plus CM (Colina)', 'qnt': 1},
+        {'codice': '2046', 'nome': 'Cryptand Solution', 'qnt': 1},
+        {'codice': '2262', 'nome': 'Acido Cloridrico', 'qnt': 10},
+        {'codice': '2273', 'nome': 'DMAE', 'qnt': 2},
+        {'codice': '2073', 'nome': 'Etanolo', 'qnt': 10},
+        {'codice': '2072', 'nome': 'Acetonitrile', 'qnt': 3},
+        {'codice': '2381', 'nome': 'Sodio Idrogeno Carbonato', 'qnt': 1},
+        {'codice': '2071', 'nome': 'Dibromomethane', 'qnt': 1},
+        {'codice': '3209', 'nome': 'Ammoniaca (colina)', 'qnt': 1},
+        {'codice': '3099', 'nome': 'Vial da 10 ml', 'qnt': 2},
+        {'codice': '3094', 'nome': 'Vial da 4,5 ml', 'qnt': 1},
+        {'codice': '3096', 'nome': 'Vial da 4 ml', 'qnt': 1},
+        {'codice': '3095', 'nome': 'Setti da 13 mm', 'qnt': 3},
+        {'codice': '3097', 'nome': 'Setti da 11 mm', 'qnt': 1},
+        {'codice': '461', 'nome': 'Kit di frazionamento', 'qnt': 1},
+        {'codice': '701', 'nome': 'Sodio cloruro 0,9% (250 ml)', 'qnt': 1},
+        {'codice': '4379', 'nome': 'Flaconi sterili apirogeni crimpati HUAYI', 'qnt': 20},
+        {'codice': '4380', 'nome': 'Capsule sterili HUAYI', 'qnt': 20},
+        {'codice': '2395', 'nome': 'Filtri STERIFIX', 'qnt': 1},
+        {'codice': '1368', 'nome': 'Filtro Millex OR 0.22 micron', 'qnt': 1},
+        {'codice': '605', 'nome': 'Piastre TSA 55 mm', 'qnt': 8},
+        {'codice': '606', 'nome': 'Piastre TSA 90 mm', 'qnt': 6},
+        {'codice': '424', 'nome': 'Acqua arricchita [18O]H2O', 'qnt': 7.6}
+    ]
+    
+    conn = get_db_connection()
+    for item in materie_fmc:
+        # Recupera i lotti disponibili per ogni materia
+        lotti_rows = conn.execute('''
+            SELECT lotto_interno, giacenza, data_scadenza
+            FROM Lotti_Interni 
+            WHERE codice_mp = ? 
+              AND (chiuso IS NULL OR chiuso != "SI" AND chiuso != "X")
+              AND CAST(giacenza AS FLOAT) > 0
+            ORDER BY data_scadenza ASC, data_arrivo ASC
+        ''', (item['codice'],)).fetchall()
+        item['lotti'] = [dict(row) for row in lotti_rows]
+    
+    conn.close()
+    return {'materie': materie_fmc}
+
+@app.route('/api/materie_fch')
+def api_materie_fch():
+    # Lista completa di materiali per FCH con codici e quantità standard
+    materie_fch = [
+        {'codice': '5653', 'nome': 'Fcholine Trasis cassette', 'qnt': 1},
+        {'codice': '5652', 'nome': 'Fcholine Trasis Kit of reagents', 'qnt': 1},
+        {'codice': '5651', 'nome': 'Fcholine Trasis KIT eluent QMA (2-8°C)', 'qnt': 1},
+        {'codice': '5659', 'nome': 'Sodio Cloruro 0,9% Bag 250ml', 'qnt': 1},
+        {'codice': '4487', 'nome': 'Acqua PPI Bag 250ml', 'qnt': 1},
+        {'codice': '2691', 'nome': 'Filtro Millex GP', 'qnt': 1},
+        {'codice': '5584', 'nome': 'Filtro Pall', 'qnt': 1},
+        {'codice': '461', 'nome': 'Kit di frazionamento', 'qnt': 1},
+        {'codice': '701', 'nome': 'Sodio cloruro 0,9% (250 ml)', 'qnt': 1},
+        {'codice': '4379', 'nome': 'Flaconi sterili apirogeni crimpati HUAYI', 'qnt': 10},
+        {'codice': '4380', 'nome': 'Capsule sterili HUAYI', 'qnt': 10},
+        {'codice': '605', 'nome': 'Piastre TSA 55 mm', 'qnt': 5},
+        {'codice': '606', 'nome': 'Piastre TSA 90 mm', 'qnt': 4},
+        {'codice': '424', 'nome': 'Acqua arricchita [18O]H2O', 'qnt': 3.8}
+    ]
+    
+    conn = get_db_connection()
+    for item in materie_fch:
+        # Recupera i lotti disponibili per ogni materia
+        lotti_rows = conn.execute('''
+            SELECT lotto_interno, giacenza, data_scadenza
+            FROM Lotti_Interni 
+            WHERE codice_mp = ? 
+              AND (chiuso IS NULL OR chiuso != "SI" AND chiuso != "X")
+              AND CAST(giacenza AS FLOAT) > 0
+            ORDER BY data_scadenza ASC, data_arrivo ASC
+        ''', (item['codice'],)).fetchall()
+        item['lotti'] = [dict(row) for row in lotti_rows]
+    
+    conn.close()
+    return {'materie': materie_fch}
+
+@app.route('/api/materie_pyl')
+def api_materie_pyl():
+    # Lista completa di materiali per PYL con codici e quantità standard
+    materie_pyl = [
+        {'codice': '5365', 'nome': 'Kit hardware PYL', 'qnt': 1},
+        {'codice': '5366', 'nome': 'Kit regenti PYL', 'qnt': 1},
+        {'codice': '5368', 'nome': 'Precursore PYL', 'qnt': 1},
+        {'codice': '5367', 'nome': 'QMA Eluent PYL', 'qnt': 1},
+        {'codice': '5585', 'nome': 'Acetonitrile HPLC', 'qnt': 250},
+        {'codice': '2073', 'nome': 'Etanolo', 'qnt': 250},
+        {'codice': '4487', 'nome': 'Acqua PPI Bag 250ml', 'qnt': 1},
+        {'codice': '63', 'nome': 'Acqua PPI 500ml', 'qnt': 2},
+        {'codice': '5584', 'nome': 'Filtro Pall', 'qnt': 1},
+        {'codice': '1368', 'nome': 'Filtro Millex OR 0.22 micron', 'qnt': 1},
+        {'codice': '461', 'nome': 'Kit di frazionamento', 'qnt': 1},
+        {'codice': '701', 'nome': 'Sodio cloruro 0,9% (250 ml)', 'qnt': 1},
+        {'codice': '4379', 'nome': 'Flaconi sterili apirogeni crimpati HUAYI', 'qnt': 20},
+        {'codice': '4380', 'nome': 'Capsule sterili HUAYI', 'qnt': 20},
+        {'codice': '605', 'nome': 'Piastre TSA 55 mm', 'qnt': 8},
+        {'codice': '606', 'nome': 'Piastre TSA 90 mm', 'qnt': 6},
+        {'codice': '424', 'nome': 'Acqua arricchita [18O]H2O', 'qnt': 8.1}
+    ]
+    
+    conn = get_db_connection()
+    for item in materie_pyl:
+        # Recupera i lotti disponibili per ogni materia
+        lotti_rows = conn.execute('''
+            SELECT lotto_interno, giacenza, data_scadenza
+            FROM Lotti_Interni 
+            WHERE codice_mp = ? 
+              AND (chiuso IS NULL OR chiuso != "SI" AND chiuso != "X")
+              AND CAST(giacenza AS FLOAT) > 0
+            ORDER BY data_scadenza ASC, data_arrivo ASC
+        ''', (item['codice'],)).fetchall()
+        item['lotti'] = [dict(row) for row in lotti_rows]
+    
+    conn.close()
+    return {'materie': materie_pyl}
+
+@app.route('/api/materie_dota')
+def api_materie_dota():
+    # Lista completa di materiali per DOTA con codici e quantità standard
+    materie_dota = [
+        {'codice': '4482', 'nome': 'DOPA Trasis Cassette', 'qnt': 1},
+        {'codice': '4483', 'nome': 'DOPA Trasis Kit 1 (2-8°C)', 'qnt': 1},
+        {'codice': '4484', 'nome': 'DOPA Trasis Kit 2', 'qnt': 1},
+        {'codice': '4486', 'nome': 'Acqua PPI Bottiglia 1L', 'qnt': 1},
+        {'codice': '4523', 'nome': 'Acqua PPI Bottiglia 250ml', 'qnt': 2},
+        {'codice': '4487', 'nome': 'Acqua PPI Bag 250ml', 'qnt': 1},
+        {'codice': '2073', 'nome': 'Etanolo', 'qnt': 250},
+        {'codice': '4485', 'nome': 'Acido ascorbico', 'qnt': 1},
+        {'codice': '3945', 'nome': 'Acido acetico', 'qnt': 2},
+        {'codice': '4491', 'nome': 'Sodio acetato triidrato', 'qnt': 3.81},
+        {'codice': '461', 'nome': 'Kit di frazionamento', 'qnt': 1},
+        {'codice': '4622', 'nome': 'Vials 100ml sterile', 'qnt': 1},
+        {'codice': '2074', 'nome': 'Filtro Millex GS Vented', 'qnt': 3},
+        {'codice': '1368', 'nome': 'Filtro Millex OR 0.22 micron', 'qnt': 1},
+        {'codice': '4379', 'nome': 'Flaconi sterili apirogeni crimpati HUAYI', 'qnt': 10},
+        {'codice': '4380', 'nome': 'Capsule sterili HUAYI', 'qnt': 10},
+        {'codice': '605', 'nome': 'Piastre TSA 55 mm', 'qnt': 8},
+        {'codice': '606', 'nome': 'Piastre TSA 90 mm', 'qnt': 6},
+        {'codice': '424', 'nome': 'Acqua arricchita [18O]H2O', 'qnt': 4.0}
+    ]
+    
+    conn = get_db_connection()
+    for item in materie_dota:
+        # Recupera i lotti disponibili per ogni materia
+        lotti_rows = conn.execute('''
+            SELECT lotto_interno, giacenza, data_scadenza
+            FROM Lotti_Interni 
+            WHERE codice_mp = ? 
+              AND (chiuso IS NULL OR chiuso != "SI" AND chiuso != "X")
+              AND CAST(giacenza AS FLOAT) > 0
+            ORDER BY data_scadenza ASC, data_arrivo ASC
+        ''', (item['codice'],)).fetchall()
+        item['lotti'] = [dict(row) for row in lotti_rows]
+    
+    conn.close()
+    return {'materie': materie_dota}
+
+@app.route('/api/materie_fet')
+def api_materie_fet():
+    # Lista completa di materiali per FET con codici e quantità standard
+    materie_fet = [
+        {'codice': '5612', 'nome': 'Kit Hardware FET', 'qnt': 1},
+        {'codice': '5611', 'nome': 'Kit reagenti FET', 'qnt': 1},
+        {'codice': '5614', 'nome': 'Precursore FET', 'qnt': 1},
+        {'codice': '5613', 'nome': 'QMA Eluent FET (2-8°C)', 'qnt': 1},
+        {'codice': '2073', 'nome': 'Etanolo', 'qnt': 250},
+        {'codice': '4486', 'nome': 'Acqua PPI Bottiglia 1L', 'qnt': 1},
+        {'codice': '5686', 'nome': 'Sodio Cloruro 0,9% Bottiglia 250ml', 'qnt': 2},
+        {'codice': '5659', 'nome': 'Sodio Cloruro 0,9% Bag 250ml', 'qnt': 1},
+        {'codice': '5679', 'nome': 'Strip Acido Ascorbico', 'qnt': 2},
+        {'codice': '3136', 'nome': 'Sodio Ascorbato', 'qnt': 1.0},
+        {'codice': '461', 'nome': 'Kit di frazionamento', 'qnt': 1},
+        {'codice': '701', 'nome': 'Sodio cloruro 0,9% (250 ml)', 'qnt': 1},
+        {'codice': '2691', 'nome': 'Filtro Millex GP', 'qnt': 1},
+        {'codice': '5584', 'nome': 'Filtro Pall', 'qnt': 1},
+        {'codice': '4379', 'nome': 'Flaconi sterili apirogeni crimpati HUAYI', 'qnt': 10},
+        {'codice': '4380', 'nome': 'Capsule sterili HUAYI', 'qnt': 10},
+        {'codice': '605', 'nome': 'Piastre TSA 55 mm', 'qnt': 0},
+        {'codice': '606', 'nome': 'Piastre TSA 90 mm', 'qnt': 0},
+        {'codice': '424', 'nome': 'Acqua arricchita [18O]H2O', 'qnt': 4.1}
+    ]
+    
+    conn = get_db_connection()
+    for item in materie_fet:
+        # Recupera i lotti disponibili per ogni materia
+        lotti_rows = conn.execute('''
+            SELECT lotto_interno, giacenza, data_scadenza
+            FROM Lotti_Interni 
+            WHERE codice_mp = ? 
+              AND (chiuso IS NULL OR chiuso != "SI" AND chiuso != "X")
+              AND CAST(giacenza AS FLOAT) > 0
+            ORDER BY data_scadenza ASC, data_arrivo ASC
+        ''', (item['codice'],)).fetchall()
+        item['lotti'] = [dict(row) for row in lotti_rows]
+    
+    conn.close()
+    return {'materie': materie_fet}
+
+@app.route('/api/materie_fbb_trasis')
+def api_materie_fbb_trasis():
+    # Lista completa di materiali per FBB TRASIS con codici e quantità standard
+    materie_fbb_trasis = [
+        {'codice': '5734', 'nome': 'Kit hardware AIO FBB', 'qnt': 1},
+        {'codice': '5736', 'nome': 'Kit reagenti 1/2 (15-25°C) AIO FBB', 'qnt': 1},
+        {'codice': '5735', 'nome': 'Kit reagenti 2/2 (2-8°C) AIO FBB', 'qnt': 1},
+        {'codice': '2730', 'nome': 'Kit purificazione FBB', 'qnt': 1},
+        {'codice': '461', 'nome': 'Kit di frazionamento', 'qnt': 1},
+        {'codice': '5780', 'nome': 'Filtro Cathivex-GV', 'qnt': 1},
+        {'codice': '5177', 'nome': 'Filtro Millex GV', 'qnt': 1},
+        {'codice': '4379', 'nome': 'Flaconi sterili apirogeni crimpati HUAYI', 'qnt': 10},
+        {'codice': '4380', 'nome': 'Capsule sterili HUAYI', 'qnt': 10},
+        {'codice': '605', 'nome': 'Piastre TSA 55 mm', 'qnt': 5},
+        {'codice': '606', 'nome': 'Piastre TSA 90 mm', 'qnt': 4},
+        {'codice': '424', 'nome': 'Acqua arricchita [18O]H2O', 'qnt': 8.1}
+    ]
+    
+    conn = get_db_connection()
+    for item in materie_fbb_trasis:
+        # Recupera i lotti disponibili per ogni materia
+        lotti_rows = conn.execute('''
+            SELECT lotto_interno, giacenza, data_scadenza
+            FROM Lotti_Interni 
+            WHERE codice_mp = ? 
+              AND (chiuso IS NULL OR chiuso != "SI" AND chiuso != "X")
+              AND CAST(giacenza AS FLOAT) > 0
+            ORDER BY data_scadenza ASC, data_arrivo ASC
+        ''', (item['codice'],)).fetchall()
+        item['lotti'] = [dict(row) for row in lotti_rows]
+    
+    conn.close()
+    return {'materie': materie_fbb_trasis}
+
+@app.route('/api/materie_fbb')
+def api_materie_fbb():
+    # Lista completa di materiali per FBB con codici e quantità standard
+    materie_fbb = [
+        {'codice': '741', 'nome': 'Kit IFP Synthera', 'qnt': 1},
+        {'codice': '2730', 'nome': 'Kit purificazione FBB', 'qnt': 1},
+        {'codice': '2731', 'nome': 'Kit reagenti FBB', 'qnt': 1},
+        {'codice': '2812', 'nome': 'Kit reagenti FBB (2-8°C)', 'qnt': 1},
+        {'codice': '461', 'nome': 'Kit di frazionamento', 'qnt': 1},
+        {'codice': '4636', 'nome': 'Filtro Minisart 0,22 micron', 'qnt': 2},
+        {'codice': '4379', 'nome': 'Flaconi sterili apirogeni crimpati HUAYI', 'qnt': 20},
+        {'codice': '4380', 'nome': 'Capsule sterili HUAYI', 'qnt': 20},
+        {'codice': '605', 'nome': 'Piastre TSA 55 mm', 'qnt': 5},
+        {'codice': '606', 'nome': 'Piastre TSA 90 mm', 'qnt': 4},
+        {'codice': '424', 'nome': 'Acqua arricchita [18O]H2O', 'qnt': 4.1}
+    ]
+    
+    conn = get_db_connection()
+    for item in materie_fbb:
+        # Recupera i lotti disponibili per ogni materia
+        lotti_rows = conn.execute('''
+            SELECT lotto_interno, giacenza, data_scadenza
+            FROM Lotti_Interni 
+            WHERE codice_mp = ? 
+              AND (chiuso IS NULL OR chiuso != "SI" AND chiuso != "X")
+              AND CAST(giacenza AS FLOAT) > 0
+            ORDER BY data_scadenza ASC, data_arrivo ASC
+        ''', (item['codice'],)).fetchall()
+        item['lotti'] = [dict(row) for row in lotti_rows]
+    
+    conn.close()
+    return {'materie': materie_fbb}
+
+@app.route('/api/materie_trasis')
+def api_materie_trasis():
+    # Lista completa di materiali per FDG TRASIS con codici e quantità standard
+    materie_trasis = [
+        {'codice': '4599', 'nome': 'Kit Hardware FDG TRASIS', 'qnt': 1},
+        {'codice': '4600', 'nome': 'Kit reagenti FDG TRASIS', 'qnt': 1},
+        {'codice': '4601', 'nome': 'Mannosio Triflato TRASIS', 'qnt': 1},
+        {'codice': '5694', 'nome': 'Chromabond FDG TRASIS', 'qnt': 1},
+        {'codice': '4602', 'nome': 'Acqua PPI Bag 1L', 'qnt': 1},
+        {'codice': '461', 'nome': 'Kit di frazionamento', 'qnt': 1},
+        {'codice': '701', 'nome': 'Sodio cloruro 0,9% (250 ml)', 'qnt': 1},
+        {'codice': '4379', 'nome': 'Flaconi sterili apirogeni crimpati HUAYI', 'qnt': 20},
+        {'codice': '4380', 'nome': 'Capsule sterili HUAYI', 'qnt': 20},
+        {'codice': '1368', 'nome': 'Filtro Millex OR 0.22 micron', 'qnt': 1},
+        {'codice': '2074', 'nome': 'Filtro Millex GS Vented', 'qnt': 1},
+        {'codice': '521', 'nome': 'Sodio Cloruro 10%', 'qnt': 1},
+        {'codice': '4357', 'nome': 'Etanolo eccipiente', 'qnt': 1},
+        {'codice': '605', 'nome': 'Piastre TSA 55 mm', 'qnt': 8},
+        {'codice': '606', 'nome': 'Piastre TSA 90 mm', 'qnt': 6},
+        {'codice': '424', 'nome': 'Acqua arricchita [18O]H2O', 'qnt': 8.1}
+    ]
+    
+    conn = get_db_connection()
+    for item in materie_trasis:
+        # Recupera i lotti disponibili per ogni materia
+        lotti_rows = conn.execute('''
+            SELECT lotto_interno, giacenza, data_scadenza
+            FROM Lotti_Interni 
+            WHERE codice_mp = ? 
+              AND (chiuso IS NULL OR chiuso != "SI" AND chiuso != "X")
+              AND CAST(giacenza AS FLOAT) > 0
+            ORDER BY data_scadenza ASC, data_arrivo ASC
+        ''', (item['codice'],)).fetchall()
+        item['lotti'] = [dict(row) for row in lotti_rows]
+    
+    conn.close()
+    return {'materie': materie_trasis}
 
 @app.route('/api/materie_fdg')
 def api_materie_fdg():
@@ -533,7 +912,16 @@ def scarico_fdg():
         for item in items:
             codice = item['codice_mp']
             lotto = item['lotto_interno']
-            quantita = float(item['quantita'])
+            
+            try:
+                # Support both comma and dot decimal formats
+                quantita_str = str(item['quantita']).replace(',', '.')
+                quantita = float(quantita_str)
+            except (ValueError, TypeError):
+                return {'success': False, 'message': f'La quantità "{item.get("quantita")}" per l\'articolo con codice {codice} non è un numero valido.'}, 400
+                
+            if quantita <= 0:
+                return {'success': False, 'message': f'La quantità per l\'articolo con codice {codice} deve essere maggiore di zero.'}, 400
             
             row = cursor.execute('''
                 SELECT L.giacenza, M.nome_mp 
@@ -548,13 +936,13 @@ def scarico_fdg():
             giacenza = float(row['giacenza']) if row['giacenza'] else 0.0
             if quantita > giacenza:
                 nome_mp = row['nome_mp'] or codice
-                return {'success': False, 'message': f'Giacenza insufficiente per {nome_mp} (Lotto {lotto}). Disponibile: {giacenza}'}, 400
+                return {'success': False, 'message': f'Giacenza insufficiente per {nome_mp} (Lotto {lotto}). Disponibile: {giacenza}, Richiesta: {quantita}'}, 400
         
         # 2. Esecuzione scarichi
         for item in items:
             codice = item['codice_mp']
             lotto = item['lotto_interno']
-            quantita = float(item['quantita'])
+            quantita = float(str(item['quantita']).replace(',', '.'))
             
             # Aggiorna giacenza
             cursor.execute("UPDATE Lotti_Interni SET giacenza = giacenza - ? WHERE lotto_interno = ?", (quantita, lotto))
