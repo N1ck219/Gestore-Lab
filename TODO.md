@@ -1,35 +1,40 @@
-# 📝 Roadmap Sviluppo Futuro: Sistema di Backup & Ripristino 🧪
+# 📝 Roadmap Sviluppo Futuro: Sistema di Backup & Miglioramenti Pratici 🧪
 
-Questa TODO list traccia i passaggi pianificati per implementare un sistema di sicurezza dei dati a doppia barriera (locale/cloud), un'interfaccia di ripristino self-service e una serie di funzionalità avanzate per la tracciabilità professionale in conformità con gli standard di laboratorio (GMP/GLP) in **Gestore-Lab**.
+Questa TODO list traccia i passaggi pianificati per migliorare **Gestore-Lab** in modo incrementale. Abbiamo spostato le funzionalità complesse di livello industriale in fondo ("in forse"), concentrandoci su soluzioni **estremamente semplici, pratiche e ad alto impatto** per l'utilizzo quotidiano e la manutenibilità offline del laboratorio.
 
 ---
 
-## 🛠️ Fase 1: Creazione Automatica dei Backup (Sicurezza & Sincronizzazione)
+## 🚀 Funzionalità Già Implementate (Portabilità Totale)
+*   [x] **Portabilità Dinamica dei Percorsi** (Risolto!)
+    *   [x] Rimosso il percorso assoluto fisso `D:\python\Gestore-Lab` per il salvataggio dei PDF delle Picking List; ora `app.py` utilizza un percorso relativo alla cartella del server.
+    *   [x] Rimosso il percorso assoluto fisso `c:\Users\Nicola\Desktop\Gestore-Lab` nel file `Avvia_Programma.bat`; ora rileva automaticamente la cartella corrente tramite `%~dp0`. Il programma può essere spostato in qualsiasi unità o cartella senza rompersi!
 
-L'obiettivo è garantire la creazione automatica di copie storiche del database ad ogni avvio dell'applicazione.
+---
+
+## 🛠️ Fase 1: Creazione Automatica dei Backup (Sicurezza Locale)
+
+L'obiettivo è garantire la creazione automatica di copie storiche del database ad ogni avvio dell'applicazione per prevenire perdite accidentali.
 
 *   [ ] **Integrazione in `Avvia_Programma.bat`**
     *   [ ] Creare in automatico la cartella `database/backups/` se mancante.
     *   [ ] Estrarre la data e l'ora corrente del sistema tramite script Batch.
     *   [ ] Copiare il file attivo `database.db` rinominandolo in `database_backup_YYYYMMDD_HHMMSS.db`.
 *   [ ] **Algoritmo di Rotazione Automatico (Risparmio Spazio)**
-    *   [ ] Scrivere uno script in Python (avviato in background o all'interno di `app.py`) che controlla la cartella dei backup.
-    *   [ ] Mantenere in automatico solo le ultime **30 copie storiche** più recenti ed eliminare quelle più vecchie.
-*   [ ] **Sincronizzazione Cloud Facoltativa**
-    *   [ ] Consentire la configurazione di un percorso di backup esterno (es. cartella di sincronizzazione attiva di OneDrive, Dropbox o Google Drive) per il backup automatico off-site.
+    *   [ ] Scrivere uno script leggero in Python (chiamato all'avvio in `app.py`) che scansiona `database/backups/`.
+    *   [ ] Mantenere in automatico solo le ultime **30 copie storiche** più recenti ed eliminare quelle più vecchie per non occupare spazio sul disco.
 
 ---
 
 ## 🖥️ Fase 2: Pannello Impostazioni & Ripristino Web "a Caldo" (Flask UI)
 
-L'obiettivo è consentire agli operatori del laboratorio di gestire ed effettuare ripristini storici direttamente dal browser in totale autonomia.
+Consentire agli operatori del laboratorio di controllare lo stato dei backup ed effettuare ripristini storici direttamente dal browser in totale autonomia.
 
 *   [ ] **Struttura Backend in `app.py`**
     *   [ ] Creare la rotta `@app.route('/settings')` per la gestione dell'applicazione.
     *   [ ] Creare una funzione per scansionare e listare dinamicamente tutti i file `.db` presenti in `database/backups/` ordinati dal più recente.
 *   [ ] **Ripristino Sicuro "a Caldo" (SQLite Online Backup API)**
     *   [ ] Implementare il ripristino tramite la funzione nativa di SQLite `sorgente.backup(destinazione)`.
-    *   [ ] Gestire ed evitare errori di blocco (*Database file is locked*) chiudendo temporaneamente eventuali cursori attivi.
+    *   [ ] Gestire ed evitare errori di blocco (*Database file is locked*) chiudendo temporaneamente eventuali cursori attivi prima dello swap.
 *   [ ] **Barriere di Sicurezza & Prevenzione Errori**
     *   [ ] **Backup Preventivo Immediato:** All'istante prima di sovrascrivere il database con il vecchio backup, creare una copia speciale `database_emergenza_pre_ripristino.db`.
     *   [ ] **Interfaccia di Doppia Conferma (Modal):** Schermata di blocco che richiede all'utente di confermare l'azione digitando manualmente la parola *"RIPRISTINA"* per sbloccare il pulsante d'invio.
@@ -44,48 +49,60 @@ L'obiettivo è consentire agli operatori del laboratorio di gestire ed effettuar
 
 *   [ ] **Script Batch di Ripristino Esterno**
     *   [ ] Creare un file `Ripristina_Database.bat` nella cartella principale del progetto.
-    *   [ ] In caso di corruzione grave in cui il server Flask non si avvia, lo script deve consentire all'utente di selezionare e ripristinare l'ultimo backup funzionante direttamente dal terminale Windows.
+    *   [ ] In caso di corruzione grave in cui il server Flask non si avvia, lo script deve consentire all'utente di selezionare e ripristinare l'ultimo backup funzionante direttamente dal terminale Windows tramite comandi standard.
 
 ---
 
-## 🚀 Fase 4: Funzionalità Avanzate & Tracciabilità Professionale (GMP/GLP Ready)
+## 📈 Fase 4: Idee "Semplicissime" ad Alto Impatto (Operatività & Manutenibilità)
 
-L'obiettivo è elevare il livello di qualità, tracciabilità e conformità regolatoria del software per contesti industriali/clinici.
+Miglioramenti a bassissimo costo di sviluppo che "svoltano" la gestione quotidiana, garantendo la pulizia dei dati e la robustezza del sistema offline.
 
-*   [ ] **Blocco di Sicurezza "QC Gate" (Controllo Qualità)**
-    *   [ ] Nella pagina di **Scarico Automatico (Picking List)**, impedire la selezione di lotti che non abbiano lo stato `appr = 'OK'` (Approvato QC).
-    *   [ ] Visualizzare un badge rosso bloccante in corrispondenza dei lotti in stato di quarantena o non ancora approvati.
-*   [ ] **Avvisi e Notifiche di Scadenza (Early Warning Dashboard)**
-    *   [ ] Mostrare avvisi di tipo *Warning* sulla Dashboard per i lotti attivi che **scadranno entro i prossimi 15-30 giorni**.
-    *   [ ] Visualizzare alert bloccanti per eventuali lotti scaduti ancora disponibili a magazzino.
-    *   [ ] Evidenziare in arancione i prodotti che si trovano sotto la soglia di **Scorta Minima**.
-*   [ ] **Integrazione con Lettori Barcode / QR Code**
-    *   [ ] Aggiungere un input globale o tasto di ricerca rapida con focus automatico per scansionare etichette.
-    *   [ ] Permettere l'identificazione istantanea del lotto scansionato per compilare i campi del prelievo senza digitazione.
-*   [ ] **Registro Modifiche ed Audit Trail (Data Integrity)**
-    *   [ ] Creare la tabella `Audit_Trail` nel database (`id`, `data_ora`, `operatore`, `azione`, `tabella_interessata`, `vecchio_valore`, `nuovo_valore`).
-    *   [ ] Salvare in automatico ogni modifica o eliminazione di lotti/prodotti effettuata dagli operatori per garantire la conformità con i requisiti regolatori sulla tracciabilità dei dati.
-*   [ ] **Statistiche di Consumo & Data Visualization**
-    *   [ ] Integrare la libreria *Chart.js* per visualizzare grafici ad area/linee.
-    *   [ ] Mostrare il trend dei consumi mensili delle materie prime chiave (es. O-18 acqua, cassette di sintesi).
-    *   [ ] Monitorare il numero di cicli di sintesi eseguiti e i lotti prodotti.
-*   [ ] **Ottimizzazione Interfaccia Touch & Tablet (Cleanroom Friendly)**
-    *   [ ] Ottimizzare il layout CSS per schermi tablet da 10 pollici (pulsanti e righe delle tabelle più grandi per facilitare l'uso con guanti in laboratorio).
-    *   [ ] Rendere la compilazione della picking list di produzione interamente spuntabile a schermo tramite pulsanti touch veloci.
+*   [ ] **Prevenzione Corruzione su OneDrive ("Safe Temp Run" via Batch)**
+    *   *Idea:* Evitare la corruzione dovuta alla sincronizzazione in tempo reale di OneDrive mentre SQLite è aperto e attivo.
+    *   *Azione:* Modificare `Avvia_Programma.bat` per copiare il database attivo in una cartella locale temporanea (es. `%temp%\GestoreLab_Active`), far puntare Flask a quel file locale per tutta la durata del lavoro, e ricopiarlo nella cartella principale (sincronizzata con OneDrive) solo al momento della chiusura del server.
+*   [ ] **Evidenziazione Visiva Automatica "Sotto Scorta"**
+    *   *Idea:* Sapere subito cosa sta finendo senza dover fare calcoli a mente o navigare in menu complessi.
+    *   *Azione:* Nella tabella **Stato Magazzino**, se la giacenza totale di un articolo scende al di sotto del valore `scorta_minima` impostato, colorare il badge in arancione o mostrare un'icona di alert ⚠️ per segnalare l'imminente necessità di ordine.
+*   [ ] **Esportazione Rapida Excel / CSV (Zero Dipendenze)**
+    *   *Idea:* Consentire all'operatore di estrarre i dati in formato compatibile con Excel per statistiche, stampe o inventari veloci.
+    *   *Azione:* Inserire un pulsante *"Esporta in CSV"* nelle pagine **Stato Magazzino** e **Storico Scarichi**. Generare il download al volo tramite la libreria standard Python `csv` (con separatore `;`), apribile direttamente in Excel in un clic.
+*   [ ] **Dropdown per Unità di Misura (Pulizia dei Dati)**
+    *   *Idea:* Evitare che inserimenti diversi della stessa unità (es. `g`, `grammi`, `G`, `gr`) inquinino le statistiche.
+    *   *Azione:* Nel form di aggiunta prodotto, trasformare il campo di testo libero in un menu a tendina con opzioni predefinite (`g`, `ml`, `Pz`, `Kit`) e una voce "Altro" che abilita la scrittura manuale.
+*   [ ] **Filtro Rapido per Nascondere Lotti Esauriti**
+    *   *Idea:* Con il passare dei mesi, il registro dei lotti accumulerà decine di lotti con giacenza a `0.0`.
+    *   *Azione:* Aggiungere un semplice interruttore/checkbox in alto nella pagina lotti *"Nascondi lotti esauriti"*. Tramite poche righe di JavaScript client-side, nasconderà all'istante le righe con giacenza pari a zero, mantenendo la tabella compatta e leggibile.
+*   [ ] **Proposta di Scadenza Predefinita (Shelf-Life Suggerita)**
+    *   *Idea:* Alcuni materiali hanno scadenze fisse rispetto alla data di arrivo (es. piastre TSA 3 mesi, cassette 1 anno).
+    *   *Azione:* Quando l'operatore inserisce la data di arrivo nel modulo lotto, mostrare un piccolo suggerimento o calcolo automatico per velocizzare l'inserimento, lasciando comunque il campo modificabile liberamente.
+*   [ ] **Duplicazione Rapida delle Materie Prime ("Clona")**
+    *   *Idea:* Velocizzare l'inserimento di prodotti simili.
+    *   *Azione:* Aggiungere un tasto "Clona" nel registro prodotti per pre-compilare il form con i dati di un prodotto esistente, lasciando da cambiare solo il codice interno.
 
 ---
 
-## 🎨 Fase 5: Semplificazione dell'Interfaccia & Esperienza Utente (UX/UI)
+## 🎨 Fase 5: Esperienza Utente & UI Semplificata (UX)
 
-L'obiettivo è rendere l'utilizzo dell'applicazione immediato, riducendo lo sforzo cognitivo e i passaggi ripetitivi.
+*   [ ] **Dashboard Consolidata (Alert in Home)**
+    *   [ ] Mostrare piccoli contatori direttamente sopra le card della Home Page (es. *"⚠️ 2 prodotti sotto scorta"* nella card Magazzino, *"🔴 3 lotti scaduti"* nella card Lotti) per una panoramica immediata.
+*   [ ] **Suggerimenti di Autocompilazione Fornitore**
+    *   [ ] Quando si inserisce un nuovo lotto, mostrare un menu a tendina o un autocompletamento per il campo "Fornitore" basato sui fornitori già memorizzati, per evitare errori di battitura (es. `Merck`, `merck-sigma`, `Merck srl`).
+*   [ ] **Guida Rapida alle Sigle di Laboratorio (Tooltips)**
+    *   [ ] Inserire una micro-icona informativa `🛈` accanto ai campi complessi nei form (`CC`, `CA`, `Appr`, `Pz x Cf`). Mostrare una spiegazione chiara al passaggio del mouse (*hover*) per facilitare l'inserimento per i nuovi operatori.
 
-*   [ ] **Dashboard Consolidata (Micro-Dati in Home)**
-    *   [ ] Integrare contatori e alert in piccolo direttamente dentro le card della Home Page (es. *"2 prodotti sotto scorta"* nella card Magazzino, *"3 lotti da approvare"* nella card Lotti) per evitare di dover navigare nelle singole pagine.
-*   [ ] **Ricerca Intelligente Universale (Spotlight Search)**
-    *   [ ] Inserire una barra di ricerca centrale nella Home Page in grado di scansionare simultaneamente codici prodotto, nomi di materie prime e numeri di lotto interni.
-    *   [ ] Mostrare un menu a tendina istantaneo con i risultati e link diretti alle schede o ai form di modifica.
-*   [ ] **Azioni Rapide ad Un Clic (Quick Actions)**
-    *   [ ] Aggiungere pulsanti di scelta rapida direttamente nelle tabelle (es. un tasto verde `✔️ Approva QC` nel Registro Lotti che imposta all'istante l'approvazione con la data odierna, senza costringere ad aprire il modulo di modifica completo).
-*   [ ] **Guida alle Sigle di Laboratorio (Tooltips Esplicativi)**
-    *   [ ] Inserire micro-icone informative `🛈` accanto a sigle o campi complessi nei form (`CC`, `CA`, `Appr`, `Pz x Cf`).
-    *   [ ] Mostrare spiegazioni chiare al passaggio del mouse (*hover*) per facilitare l'inserimento dei dati ed eliminare dubbi operativi per i nuovi utenti.
+---
+
+## 🔮 Fase 6: Estensioni Complesse & Integrazioni Regolatorie (IN FORSE / DA VALUTARE)
+
+*Queste funzionalità rappresentano estensioni avanzate di livello industriale/GMP, tipicamente non presenti nei fogli Excel. Sono tenute in considerazione come possibili sviluppi futuri da valutare solo se le necessità del laboratorio dovessero scalare significativamente.*
+
+*   [ ] **Genealogia del Lotto**
+    *   *Descrizione:* Collegamento automatico tracciabile tra le materie prime esatte consumate e il lotto di radiofarmaco finale prodotto.
+*   [ ] **Controllo Accessi basato su Ruoli (Compliance FDA 21 CFR Part 11)**
+    *   *Descrizione:* Sistema di autenticazione con credenziali separate per Operatori, Controllo Qualità (QA/QC) e Amministratori, con firma elettronica.
+*   [ ] **Integrazione Stampante Termica (Barcode / QR Code)**
+    *   *Descrizione:* Stampa di etichette adesive fisiche con QR code per tracciare i lotti interni ed eseguire carichi/scarichi tramite lettore ottico.
+*   [ ] **Importazione File di Report di Sintesi (IBA / Trasis)**
+    *   *Descrizione:* Funzionalità di Drag & Drop dei report generati dai sintetizzatori per calcolare e scaricare i consumi dei reagenti in automatico.
+*   [ ] **Modulo Gestione Controcampioni Avanzato**
+    *   *Descrizione:* Tracciamento del posizionamento fisico del controcampione (es. Frigo A, Cassetto 3) e promemoria di smaltimento calcolato a 1 anno dalla scadenza.

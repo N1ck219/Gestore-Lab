@@ -5,8 +5,9 @@ echo Sto avviando il programma... attendi un istante.
 :: ==========================================
 :: CONFIGURAZIONE PERCORSI
 :: ==========================================
-:: Imposta qui la cartella in cui si trova il progetto (dove risiedono app.py e requirements.txt)
-set "TARGET_DIR=c:\Users\Nicola\Desktop\Gestore-Lab"
+:: Rileva dinamicamente la cartella in cui risiede questo script batch
+set "TARGET_DIR=%~dp0"
+if "%TARGET_DIR:~-1%"=="\" set "TARGET_DIR=%TARGET_DIR:~0,-1%"
 :: Nome della cartella per il virtual environment
 set "VENV_NAME=venv"
 :: ==========================================

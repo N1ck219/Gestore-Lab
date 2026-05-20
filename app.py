@@ -977,8 +977,8 @@ def save_picking_pdf():
         operatore = data.get('operatore', 'N/A')
         items = data.get('items', [])
 
-        # Directory di salvataggio
-        save_dir = r"D:\python\Gestore-Lab\picking list"
+        # Directory di salvataggio (dinamica rispetto alla posizione di questo file)
+        save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "picking list")
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
 
