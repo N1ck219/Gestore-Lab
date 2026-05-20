@@ -72,3 +72,20 @@ L'obiettivo è elevare il livello di qualità, tracciabilità e conformità rego
 *   [ ] **Ottimizzazione Interfaccia Touch & Tablet (Cleanroom Friendly)**
     *   [ ] Ottimizzare il layout CSS per schermi tablet da 10 pollici (pulsanti e righe delle tabelle più grandi per facilitare l'uso con guanti in laboratorio).
     *   [ ] Rendere la compilazione della picking list di produzione interamente spuntabile a schermo tramite pulsanti touch veloci.
+
+---
+
+## 🎨 Fase 5: Semplificazione dell'Interfaccia & Esperienza Utente (UX/UI)
+
+L'obiettivo è rendere l'utilizzo dell'applicazione immediato, riducendo lo sforzo cognitivo e i passaggi ripetitivi.
+
+*   [ ] **Dashboard Consolidata (Micro-Dati in Home)**
+    *   [ ] Integrare contatori e alert in piccolo direttamente dentro le card della Home Page (es. *"2 prodotti sotto scorta"* nella card Magazzino, *"3 lotti da approvare"* nella card Lotti) per evitare di dover navigare nelle singole pagine.
+*   [ ] **Ricerca Intelligente Universale (Spotlight Search)**
+    *   [ ] Inserire una barra di ricerca centrale nella Home Page in grado di scansionare simultaneamente codici prodotto, nomi di materie prime e numeri di lotto interni.
+    *   [ ] Mostrare un menu a tendina istantaneo con i risultati e link diretti alle schede o ai form di modifica.
+*   [ ] **Azioni Rapide ad Un Clic (Quick Actions)**
+    *   [ ] Aggiungere pulsanti di scelta rapida direttamente nelle tabelle (es. un tasto verde `✔️ Approva QC` nel Registro Lotti che imposta all'istante l'approvazione con la data odierna, senza costringere ad aprire il modulo di modifica completo).
+*   [ ] **Guida alle Sigle di Laboratorio (Tooltips Esplicativi)**
+    *   [ ] Inserire micro-icone informative `🛈` accanto a sigle o campi complessi nei form (`CC`, `CA`, `Appr`, `Pz x Cf`).
+    *   [ ] Mostrare spiegazioni chiare al passaggio del mouse (*hover*) per facilitare l'inserimento dei dati ed eliminare dubbi operativi per i nuovi utenti.
