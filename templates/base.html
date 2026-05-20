@@ -7,6 +7,95 @@
     <title>Lab Manager</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Dropdown Impostazioni */
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .btn-settings {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn-settings:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 0.5rem);
+            background: #111726;
+            min-width: 200px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+            border-radius: 0.75rem;
+            z-index: 1000;
+            overflow: hidden;
+            backdrop-filter: blur(15px);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .dropdown-content.show {
+            display: block;
+            animation: fadeInDropdown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeInDropdown {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-content a {
+            color: var(--text-pale);
+            padding: 0.8rem 1.2rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .dropdown-content a:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-content a:hover {
+            background-color: rgba(255, 255, 255, 0.04);
+            color: white;
+            padding-left: 1.4rem; /* Micro-animazione spostamento */
+        }
+    </style>
 </head>
 
 <body>
@@ -16,7 +105,14 @@
                 <a href="{{ url_for('index') }}" class="btn btn-home">🏠 Home</a>
             </div>
 
-
+            <div class="header-right">
+                <div class="dropdown">
+                    <button class="btn btn-settings" id="settingsBtn" onclick="toggleSettingsDropdown()">⚙️ Impostazioni</button>
+                    <div class="dropdown-content" id="settingsDropdown">
+                        <a href="{{ url_for('audit_trail') }}">📜 Storico Operazioni</a>
+                    </div>
+                </div>
+            </div>
         </header>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -33,6 +129,25 @@
             {% block content %}{% endblock %}
         </main>
     </div>
+
+    <script>
+        function toggleSettingsDropdown() {
+            document.getElementById("settingsDropdown").classList.toggle("show");
+        }
+        
+        // Chiude il dropdown se l'utente clicca fuori
+        window.onclick = function(event) {
+            if (!event.target.matches('.btn-settings') && !event.target.closest('.dropdown')) {
+                var dropdowns = document.getElementsByClassName("dropdown-content");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+    </script>
 </body>
 
 </html>

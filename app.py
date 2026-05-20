@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import sqlite3
 import os
-from datetime import datetime
+import json
+from datetime import datetime, timedelta
 from fpdf import FPDF
 
 app = Flask(__name__)
@@ -13,6 +14,56 @@ def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+def init_audit_db():
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS Audit_Trail (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                data_ora TEXT NOT NULL,
+                operatore TEXT,
+                azione TEXT NOT NULL,
+                tabella_interessata TEXT NOT NULL,
+                vecchio_valore TEXT,
+                nuovo_valore TEXT
+            )
+        ''')
+        conn.commit()
+    except Exception as e:
+        print(f"Errore durante la creazione della tabella Audit_Trail: {e}")
+    finally:
+        conn.close()
+
+# Inizializza il database dell'audit trail all'avvio
+init_audit_db()
+
+def log_audit(azione, tabella_interessata, operatore, vecchio_valore=None, nuovo_valore=None, conn=None):
+    data_ora = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+    
+    vecchio_val_str = json.dumps(vecchio_valore) if isinstance(vecchio_valore, (dict, list)) else vecchio_valore
+    nuovo_val_str = json.dumps(nuovo_valore) if isinstance(nuovo_valore, (dict, list)) else nuovo_valore
+    
+    if not operatore or not str(operatore).strip():
+        operatore = "Sistema"
+        
+    local_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        local_conn = True
+        
+    try:
+        conn.execute('''
+            INSERT INTO Audit_Trail (data_ora, operatore, azione, tabella_interessata, vecchio_valore, nuovo_valore)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (data_ora, operatore, azione, tabella_interessata, vecchio_val_str, nuovo_val_str))
+        if local_conn:
+            conn.commit()
+    except Exception as e:
+        print(f"Errore durante l'inserimento dell'audit trail: {e}")
+    finally:
+        if local_conn:
+            conn.close()
 
 @app.template_filter('dateformat')
 def dateformat_filter(value, format='%d-%m-%Y'):
@@ -42,7 +93,69 @@ def format_date_filter(value):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    conn = get_db_connection()
+    today = datetime.now().date()
+    
+    # 1. Recupera lotti attivi (con giacenza > 0)
+    lotti_rows = conn.execute('''
+        SELECT L.lotto_interno, L.codice_mp, L.giacenza, L.data_scadenza, L.lotto_fornitore, M.nome_mp 
+        FROM Lotti_Interni L 
+        JOIN Elenco_MP M ON L.codice_mp = M.codice 
+        WHERE L.giacenza IS NOT NULL AND L.giacenza != '' AND CAST(L.giacenza AS FLOAT) > 0
+          AND (L.chiuso IS NULL OR (L.chiuso != 'SI' AND L.chiuso != 'X'))
+    ''').fetchall()
+    
+    lotti_scaduti = []
+    lotti_in_scadenza = []
+    
+    def parse_db_date(date_str):
+        if not date_str or date_str == '-':
+            return None
+        for fmt in ('%Y-%m-%d', '%d-%m-%Y'):
+            try:
+                return datetime.strptime(date_str, fmt).date()
+            except ValueError:
+                continue
+        return None
+        
+    for row in lotti_rows:
+        lot = dict(row)
+        scad_date = parse_db_date(lot['data_scadenza'])
+        if scad_date:
+            if scad_date < today:
+                lotti_scaduti.append(lot)
+            elif today <= scad_date <= today + timedelta(days=30):
+                lot['giorni_rimanenti'] = (scad_date - today).days
+                lotti_in_scadenza.append(lot)
+                
+    # Ordinamento: per data di scadenza (più vecchi prima)
+    lotti_scaduti.sort(key=lambda x: parse_db_date(x['data_scadenza']) or today)
+    lotti_in_scadenza.sort(key=lambda x: parse_db_date(x['data_scadenza']) or today)
+    
+    # 2. Recupera materie prime sotto scorta minima
+    inventory_rows = conn.execute('''
+        SELECT M.codice, M.nome_mp, M.scorta_minima,
+               SUM(CASE WHEN L.giacenza IS NOT NULL AND L.giacenza != '' THEN CAST(L.giacenza AS FLOAT) ELSE 0 END) as giacenza_totale
+        FROM Elenco_MP M
+        LEFT JOIN Lotti_Interni L ON M.codice = L.codice_mp AND (L.chiuso IS NULL OR (L.chiuso != 'SI' AND L.chiuso != 'X'))
+        GROUP BY M.codice, M.nome_mp, M.scorta_minima
+    ''').fetchall()
+    
+    sotto_scorta = []
+    for row in inventory_rows:
+        item = dict(row)
+        scorta_min = float(item['scorta_minima']) if item['scorta_minima'] is not None else 0.0
+        if scorta_min > 0 and item['giacenza_totale'] < scorta_min:
+            # Arrotonda giacenza a 2 decimali per pulizia
+            item['giacenza_totale'] = round(item['giacenza_totale'], 2)
+            sotto_scorta.append(item)
+            
+    conn.close()
+    
+    return render_template('index.html', 
+                           lotti_scaduti=lotti_scaduti, 
+                           lotti_in_scadenza=lotti_in_scadenza, 
+                           sotto_scorta=sotto_scorta)
 
 @app.route('/list')
 def product_list():
@@ -89,6 +202,15 @@ def add():
                              (data['codice'], data['nome_mp'], data['nome_file'], data['nome_etichetta'], 
                               data['unita_misura'], data['codice_fornitore'], data['uso'], 
                               data['controcampione'], data['distribuzione'], data['scorta_minima']))
+                
+                log_audit(
+                    azione="INSERIMENTO",
+                    tabella_interessata="Elenco_MP",
+                    operatore="Sistema",
+                    nuovo_valore=data,
+                    conn=conn
+                )
+                
                 conn.commit()
                 flash('Prodotto aggiunto con successo!')
                 return redirect(url_for('product_list'))
@@ -99,6 +221,102 @@ def add():
                 conn.close()
 
     return render_template('add_product.html')
+
+@app.route('/update_product', methods=['POST'])
+def update_product():
+    conn = get_db_connection()
+    original_codice = request.form['original_codice']
+    codice = request.form['codice']
+    nome_mp = request.form['nome_mp']
+    nome_file = request.form['nome_file']
+    nome_etichetta = request.form['nome_etichetta']
+    unita_misura = request.form['unita_misura']
+    codice_fornitore = request.form['codice_fornitore']
+    uso = request.form['uso']
+    controcampione = request.form['controcampione']
+    distribuzione = request.form['distribuzione']
+    scorta_minima = request.form.get('scorta_minima') or 0
+
+    try:
+        # Recupera il vecchio valore prima della modifica
+        old_row = conn.execute("SELECT * FROM Elenco_MP WHERE codice = ?", (original_codice,)).fetchone()
+        old_val = dict(old_row) if old_row else None
+
+        # Se il codice cambia, aggiorniamo in cascata le tabelle collegate
+        if codice != original_codice:
+            conn.execute('UPDATE Lotti_Interni SET codice_mp = ? WHERE codice_mp = ?', (codice, original_codice))
+            conn.execute('UPDATE Scarichi SET materiale_codice = ? WHERE materiale_codice = ?', (codice, original_codice))
+            
+        conn.execute('''UPDATE Elenco_MP SET 
+                        codice = ?, nome_mp = ?, nome_file = ?, nome_etichetta = ?, unita_misura = ?, 
+                        codice_fornitore = ?, uso = ?, controcampione = ?, distribuzione = ?, scorta_minima = ?
+                        WHERE codice = ?''',
+                     (codice, nome_mp, nome_file, nome_etichetta, unita_misura, 
+                      codice_fornitore, uso, controcampione, distribuzione, scorta_minima, original_codice))
+        
+        new_val = {
+            'codice': codice,
+            'nome_mp': nome_mp,
+            'nome_file': nome_file,
+            'nome_etichetta': nome_etichetta,
+            'unita_misura': unita_misura,
+            'codice_fornitore': codice_fornitore,
+            'uso': uso,
+            'controcampione': controcampione,
+            'distribuzione': distribuzione,
+            'scorta_minima': scorta_minima
+        }
+        
+        log_audit(
+            azione="MODIFICA",
+            tabella_interessata="Elenco_MP",
+            operatore="Sistema",
+            vecchio_valore=old_val,
+            nuovo_valore=new_val,
+            conn=conn
+        )
+        
+        conn.commit()
+        flash('Materia prima aggiornata con successo!', 'success')
+    except sqlite3.IntegrityError:
+        flash(f'Errore: Il codice {codice} esiste già nel database!', 'error')
+    except Exception as e:
+        flash(f'Errore durante l\'aggiornamento: {e}', 'error')
+    finally:
+        conn.close()
+    return redirect(url_for('product_list'))
+
+@app.route('/delete_product', methods=['POST'])
+def delete_product():
+    conn = get_db_connection()
+    codice = request.form['codice']
+    try:
+        # Recupera il vecchio valore prima dell'eliminazione
+        old_row = conn.execute("SELECT * FROM Elenco_MP WHERE codice = ?", (codice,)).fetchone()
+        old_val = dict(old_row) if old_row else None
+
+        # Eliminiamo in cascata lotti e scarichi collegati per pulizia database
+        conn.execute('DELETE FROM Lotti_Interni WHERE codice_mp = ?', (codice,))
+        conn.execute('DELETE FROM Scarichi WHERE materiale_codice = ?', (codice,))
+        conn.execute('DELETE FROM Elenco_MP WHERE codice = ?', (codice,))
+        
+        log_audit(
+            azione="ELIMINAZIONE",
+            tabella_interessata="Elenco_MP",
+            operatore="Sistema",
+            vecchio_valore=old_val,
+            nuovo_valore=None,
+            conn=conn
+        )
+        
+        conn.commit()
+        flash('Materia prima ed eventuali dati associati eliminati con successo!', 'success')
+    except Exception as e:
+        flash(f'Errore durante l\'eliminazione: {e}', 'error')
+    finally:
+        conn.close()
+    return redirect(url_for('product_list'))
+
 
 @app.route('/lotti')
 def lotti_list():
@@ -151,6 +369,10 @@ def update_lotto():
         data['appr'] = '-'
     
     try:
+        # Recupera il vecchio valore prima della modifica
+        old_row = conn.execute("SELECT * FROM Lotti_Interni WHERE lotto_interno = ?", (data['lotto_interno'],)).fetchone()
+        old_val = dict(old_row) if old_row else None
+
         conn.execute('''UPDATE Lotti_Interni SET 
                         codice_mp=?, data_arrivo=?, lotto_fornitore=?, fornitore=?, data_scadenza=?, 
                         qnt_arrivata=?, pz_x_cf=?, giacenza=?, data_consegna_qc=?, data_approvazione=?, 
@@ -161,6 +383,16 @@ def update_lotto():
                       data['data_consegna_qc'], data['data_approvazione'], data['arrivo_magazzino'], 
                       data['consumi'], data['ca'], data['reparto'], data['appr'], data['etich'], 
                       data['cc'], data['codice_lotto'], data['lotto_interno']))
+        
+        log_audit(
+            azione="MODIFICA",
+            tabella_interessata="Lotti_Interni",
+            operatore="Sistema",
+            vecchio_valore=old_val,
+            nuovo_valore=data,
+            conn=conn
+        )
+        
         conn.commit()
         flash('Lotto aggiornato con successo!')
     except Exception as e:
@@ -209,6 +441,15 @@ def add_lotto():
                              (data['lotto_interno'], data['codice_mp'], data['data_arrivo'], 
                               data['lotto_fornitore'], data['fornitore'], data['data_scadenza'],
                               data['qnt_arrivata'], data['pz_x_cf'], data['giacenza'], data['in_uso']))
+                
+                log_audit(
+                    azione="INSERIMENTO",
+                    tabella_interessata="Lotti_Interni",
+                    operatore="Sistema",
+                    nuovo_valore=data,
+                    conn=conn
+                )
+                
                 conn.commit()
                 flash('Lotto aggiunto con successo!')
                 return redirect(url_for('lotti_list'))
@@ -366,11 +607,30 @@ def api_approva_lotto():
     
     conn = get_db_connection()
     try:
+        # Recupera il vecchio valore prima dell'approvazione
+        old_row = conn.execute("SELECT * FROM Lotti_Interni WHERE lotto_interno = ?", (lotto_interno,)).fetchone()
+        old_val = dict(old_row) if old_row else None
+
         conn.execute('''
             UPDATE Lotti_Interni 
             SET data_approvazione = ?, appr = 'OK' 
             WHERE lotto_interno = ?
         ''', (data_approvazione, lotto_interno))
+        
+        # Costruisce il nuovo valore
+        new_val = dict(old_val) if old_val else {}
+        new_val['data_approvazione'] = data_approvazione
+        new_val['appr'] = 'OK'
+        
+        log_audit(
+            azione="APPROVAZIONE_QC",
+            tabella_interessata="Lotti_Interni",
+            operatore="Sistema",
+            vecchio_valore=old_val,
+            nuovo_valore=new_val,
+            conn=conn
+        )
+        
         conn.commit()
         return {'success': True}
     except Exception as e:
@@ -447,8 +707,8 @@ def scarico_manuale():
             return render_template('scarico_manuale.html', materie=materie, today=today, form_data=form_data)
         else:
             try:
-                # Retrieve current giacenza
-                lotto_row = conn.execute("SELECT giacenza FROM Lotti_Interni WHERE lotto_interno = ?", (lotto_interno,)).fetchone()
+                # Retrieve current lotto state
+                lotto_row = conn.execute("SELECT * FROM Lotti_Interni WHERE lotto_interno = ?", (lotto_interno,)).fetchone()
                 if not lotto_row:
                     flash("Errore: Lotto non trovato.")
                     materie = conn.execute('SELECT codice, nome_mp FROM Elenco_MP ORDER BY nome_mp ASC').fetchall()
@@ -478,6 +738,27 @@ def scarico_manuale():
                         INSERT INTO Scarichi (data, lotto_interno, causale, quantita, operatore, materiale_codice, data_ultimo_utilizzo)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
                     """, (data_scarico, lotto_interno, causale, quantita, operatore, codice_mp, data_ultimo_utilizzo))
+                    
+                    # Costruisce il nuovo valore dello scarico per l'audit trail
+                    new_scarico_val = {
+                        'data': data_scarico,
+                        'lotto_interno': lotto_interno,
+                        'causale': causale,
+                        'quantita': quantita,
+                        'operatore': operatore,
+                        'materiale_codice': codice_mp,
+                        'data_ultimo_utilizzo': data_ultimo_utilizzo,
+                        'nuova_giacenza_lotto': new_giacenza
+                    }
+                    
+                    log_audit(
+                        azione="SCARICO_MANUALE",
+                        tabella_interessata="Scarichi",
+                        operatore=operatore,
+                        vecchio_valore=dict(lotto_row) if lotto_row else None,
+                        nuovo_valore=new_scarico_val,
+                        conn=conn
+                    )
                     
                     conn.commit()
                     flash(f'Scarico registrato con successo! Nuova giacenza: {new_giacenza}')
@@ -1059,6 +1340,11 @@ def scarico_fdg():
             lotto = item['lotto_interno']
             quantita = float(str(item['quantita']).replace(',', '.'))
             
+            # Recupera il vecchio valore del lotto prima dello scarico
+            lotto_row = cursor.execute("SELECT * FROM Lotti_Interni WHERE lotto_interno = ?", (lotto,)).fetchone()
+            old_giacenza = float(lotto_row['giacenza']) if lotto_row and lotto_row['giacenza'] is not None else 0.0
+            new_giacenza = old_giacenza - quantita
+            
             # Aggiorna giacenza
             cursor.execute("UPDATE Lotti_Interni SET giacenza = giacenza - ? WHERE lotto_interno = ?", (quantita, lotto))
             
@@ -1067,6 +1353,27 @@ def scarico_fdg():
                 INSERT INTO Scarichi (data, lotto_interno, causale, quantita, operatore, materiale_codice, lotto_prod)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (data_scarico, lotto, 'Produzione', quantita, operatore, codice, lotto_prod))
+            
+            # Costruisce il nuovo valore dello scarico per l'audit trail
+            new_scarico_val = {
+                'data': data_scarico,
+                'lotto_interno': lotto,
+                'causale': 'Produzione',
+                'quantita': quantita,
+                'operatore': operatore,
+                'materiale_codice': codice,
+                'lotto_prod': lotto_prod,
+                'nuova_giacenza_lotto': new_giacenza
+            }
+            
+            log_audit(
+                azione="SCARICO_AUTOMATICO",
+                tabella_interessata="Scarichi",
+                operatore=operatore,
+                vecchio_valore=dict(lotto_row) if lotto_row else None,
+                nuovo_valore=new_scarico_val,
+                conn=conn
+            )
         
         conn.commit()
         return {'success': True, 'message': 'Scarico FDG completato con successo!'}
@@ -1199,6 +1506,20 @@ def save_picking_pdf():
     except Exception as e:
         print(f"Error saving PDF: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/audit_trail')
+def audit_trail():
+    conn = get_db_connection()
+    try:
+        rows = conn.execute("SELECT * FROM Audit_Trail ORDER BY id DESC").fetchall()
+        audit_records = [dict(row) for row in rows]
+    except Exception as e:
+        flash(f"Errore nel recupero dello storico operazioni: {e}", "error")
+        audit_records = []
+    finally:
+        conn.close()
+    return render_template('audit_trail.html', audit_records=audit_records)
 
 
 if __name__ == '__main__':

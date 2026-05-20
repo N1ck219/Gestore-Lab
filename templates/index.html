@@ -1,58 +1,442 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div
-    style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 2rem;">
-    <h2 style="font-size: 2rem; color: var(--text-secondary); margin-bottom: 1rem;">Dashboard Laboratorio</h2>
+<div style="display: flex; flex-direction: column; align-items: center; min-height: 60vh; gap: 1.5rem; width: 100%;">
+    <h2 style="font-size: 2rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-align: center;">Dashboard Laboratorio</h2>
 
-    <div
-        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; width: 100%; max-width: 900px;">
-        
-        <!-- Sezione Magazzino -->
-        <a href="{{ url_for('magazzino') }}" class="main-card card-magazzino">
-            <div class="card-icon">📊</div>
-            <h3>Stato Magazzino</h3>
-            <p>Monitora le giacenze totali e i lotti in uso in tempo reale</p>
-        </a>
+    <style>
+        /* Responsive Dashboard Layout */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            width: 100%;
+            max-width: 1100px;
+            align-items: start;
+        }
 
-        <!-- Sezione Prodotti -->
-        <a href="{{ url_for('add') }}" class="main-card card-prodotti">
-            <div class="card-icon">➕</div>
-            <h3>Nuova Materia Prima</h3>
-            <p>Configura un nuovo prodotto nel database</p>
-        </a>
+        .nav-section {
+            width: 100%;
+        }
 
-        <a href="{{ url_for('product_list') }}" class="main-card card-prodotti">
-            <div class="card-icon">📋</div>
-            <h3>Registro Materie Prime</h3>
-            <p>Elenco completo delle materie prime</p>
-        </a>
+        .navigation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+        }
 
-        <!-- Sezione Lotti -->
-        <a href="{{ url_for('add_lotto') }}" class="main-card card-lotti">
-            <div class="card-icon">📦</div>
-            <h3>Nuovo Lotto</h3>
-            <p>Registra un nuovo lotto in arrivo</p>
-        </a>
+        /* Sidebar Warning Styles */
+        .sidebar-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            width: 100%;
+        }
 
-        <a href="{{ url_for('lotti_list') }}" class="main-card card-lotti">
-            <div class="card-icon">🔍</div>
-            <h3>Registro Lotti</h3>
-            <p>Visualizza e cerca tra i lotti registrati</p>
-        </a>
+        .warning-sidebar-card {
+            background: rgba(17, 23, 38, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 1.25rem;
+            padding: 1.25rem;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
 
-        <!-- Sezione Scarico -->
-        <a href="{{ url_for('scarico_manuale') }}" class="main-card card-scarichi">
-            <div class="card-icon">📉</div>
-            <h3>Registra Scarico</h3>
-            <p>Esegui uno scarico manuale o carica un report automatico</p>
-        </a>
+        .warning-sidebar-card.danger {
+            border-color: rgba(244, 63, 94, 0.3);
+            box-shadow: 0 4px 24px rgba(244, 63, 94, 0.06), 0 0 0 1px rgba(244, 63, 94, 0.1) inset;
+        }
+        .warning-sidebar-card.danger:hover {
+            border-color: rgba(244, 63, 94, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(244, 63, 94, 0.15), 0 0 0 1px rgba(244, 63, 94, 0.2) inset;
+        }
 
-        <a href="{{ url_for('storico_scarichi') }}" class="main-card card-scarichi">
-            <div class="card-icon">📜</div>
-            <h3>Storico Scarichi</h3>
-            <p>Consulta il registro di tutti i movimenti in uscita</p>
-        </a>
+        .warning-sidebar-card.warning {
+            border-color: rgba(245, 158, 11, 0.3);
+            box-shadow: 0 4px 24px rgba(245, 158, 11, 0.05), 0 0 0 1px rgba(245, 158, 11, 0.1) inset;
+        }
+        .warning-sidebar-card.warning:hover {
+            border-color: rgba(245, 158, 11, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(245, 158, 11, 0.12), 0 0 0 1px rgba(245, 158, 11, 0.2) inset;
+        }
+
+        .warning-sidebar-card.understock {
+            border-color: rgba(249, 115, 22, 0.3);
+            box-shadow: 0 4px 24px rgba(249, 115, 22, 0.05), 0 0 0 1px rgba(249, 115, 22, 0.1) inset;
+        }
+        .warning-sidebar-card.understock:hover {
+            border-color: rgba(249, 115, 22, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(249, 115, 22, 0.12), 0 0 0 1px rgba(249, 115, 22, 0.2) inset;
+        }
+
+        .warning-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.85rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 0.5rem;
+        }
+
+        .warning-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            color: var(--text-primary);
+            text-transform: uppercase;
+        }
+
+        .warning-badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: auto;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .warning-badge.danger {
+            background: rgba(244, 63, 94, 0.2);
+            color: #ff8a9e;
+            border: 1px solid rgba(244, 63, 94, 0.3);
+        }
+
+        .warning-badge.warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: #ffd166;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .warning-badge.understock {
+            background: rgba(249, 115, 22, 0.2);
+            color: #ffaa66;
+            border: 1px solid rgba(249, 115, 22, 0.3);
+        }
+
+        .alert-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .alert-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 0.6rem;
+            padding: 0.65rem;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            transition: background 0.2s ease;
+        }
+
+        .alert-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .alert-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alert-mp-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 140px;
+        }
+
+        .alert-mp-code {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-weight: normal;
+        }
+
+        .alert-item-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.72rem;
+            color: var(--text-pale);
+        }
+
+        .alert-item-badge {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-pale);
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .alert-item-badge.danger {
+            background: rgba(244, 63, 94, 0.15);
+            color: #ff8a9e;
+            border-color: rgba(244, 63, 94, 0.25);
+        }
+
+        .alert-item-badge.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: #ffd166;
+            border-color: rgba(245, 158, 11, 0.25);
+        }
+
+        .alert-item-badge.understock {
+            background: rgba(249, 115, 22, 0.15);
+            color: #ffaa66;
+            border-color: rgba(249, 115, 22, 0.25);
+        }
+
+        .alert-item-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px dashed rgba(255, 255, 255, 0.05);
+            padding-top: 0.3rem;
+            margin-top: 0.15rem;
+            font-size: 0.72rem;
+        }
+
+        /* "Niente da Segnalare" Empty State Card */
+        .no-alerts-card {
+            background: rgba(16, 185, 129, 0.01);
+            border: 1px dashed rgba(16, 185, 129, 0.25);
+            border-radius: 1.25rem;
+            padding: 1.5rem 1.25rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.01);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.6rem;
+            width: 100%;
+        }
+
+        .no-alerts-card:hover {
+            border-color: rgba(16, 185, 129, 0.5);
+            background: rgba(16, 185, 129, 0.03);
+            box-shadow: 0 8px 30px rgba(16, 185, 129, 0.05);
+        }
+
+        .no-alerts-icon {
+            font-size: 1.8rem;
+            color: var(--success);
+            filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.3));
+            animation: pulseGlow 3s infinite ease-in-out;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.2));
+            }
+            50% {
+                transform: scale(1.06);
+                filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.5));
+            }
+        }
+
+        .no-alerts-card h4 {
+            color: #a7f3d0;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .no-alerts-card p {
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 992px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+        }
+    </style>
+
+    <div class="dashboard-layout">
+        <!-- SEZIONE PULSANTI NAVIGAZIONE (SINISTRA) -->
+        <div class="nav-section">
+            <div class="navigation-grid">
+                
+                <!-- Sezione Magazzino -->
+                <a href="{{ url_for('magazzino') }}" class="main-card card-magazzino" style="padding: 2rem;">
+                    <div class="card-icon" style="font-size: 2.2rem; margin-bottom: 0.8rem;">📊</div>
+                    <h3 style="font-size: 1.15rem;">Stato Magazzino</h3>
+                    <p style="font-size: 0.85rem;">Monitora le giacenze totali e i lotti in uso in tempo reale</p>
+                </a>
+
+                <!-- Sezione Prodotti -->
+                <a href="{{ url_for('add') }}" class="main-card card-prodotti" style="padding: 2rem;">
+                    <div class="card-icon" style="font-size: 2.2rem; margin-bottom: 0.8rem;">➕</div>
+                    <h3 style="font-size: 1.15rem;">Nuova Materia Prima</h3>
+                    <p style="font-size: 0.85rem;">Configura un nuovo prodotto nel database</p>
+                </a>
+
+                <a href="{{ url_for('product_list') }}" class="main-card card-prodotti" style="padding: 2rem;">
+                    <div class="card-icon" style="font-size: 2.2rem; margin-bottom: 0.8rem;">📋</div>
+                    <h3 style="font-size: 1.15rem;">Registro Materie Prime</h3>
+                    <p style="font-size: 0.85rem;">Elenco completo delle materie prime</p>
+                </a>
+
+                <!-- Sezione Lotti -->
+                <a href="{{ url_for('add_lotto') }}" class="main-card card-lotti" style="padding: 2rem;">
+                    <div class="card-icon" style="font-size: 2.2rem; margin-bottom: 0.8rem;">📦</div>
+                    <h3 style="font-size: 1.15rem;">Nuovo Lotto</h3>
+                    <p style="font-size: 0.85rem;">Registra un nuovo lotto in arrivo</p>
+                </a>
+
+                <a href="{{ url_for('lotti_list') }}" class="main-card card-lotti" style="padding: 2rem;">
+                    <div class="card-icon" style="font-size: 2.2rem; margin-bottom: 0.8rem;">🔍</div>
+                    <h3 style="font-size: 1.15rem;">Registro Lotti</h3>
+                    <p style="font-size: 0.85rem;">Visualizza e cerca tra i lotti registrati</p>
+                </a>
+
+                <!-- Sezione Scarico -->
+                <a href="{{ url_for('scarico_manuale') }}" class="main-card card-scarichi" style="padding: 2rem;">
+                    <div class="card-icon" style="font-size: 2.2rem; margin-bottom: 0.8rem;">📉</div>
+                    <h3 style="font-size: 1.15rem;">Registra Scarico</h3>
+                    <p style="font-size: 0.85rem;">Esegui uno scarico manuale o carica un report automatico</p>
+                </a>
+
+                <a href="{{ url_for('storico_scarichi') }}" class="main-card card-scarichi" style="padding: 2rem;">
+                    <div class="card-icon" style="font-size: 2.2rem; margin-bottom: 0.8rem;">📜</div>
+                    <h3 style="font-size: 1.15rem;">Storico Scarichi</h3>
+                    <p style="font-size: 0.85rem;">Consulta il registro di tutti i movimenti in uscita</p>
+                </a>
+            </div>
+        </div>
+
+        <!-- SEZIONE SIDEBAR WARNINGS (DESTRA) -->
+        <div class="sidebar-section">
+            {% if lotti_scaduti or lotti_in_scadenza or sotto_scorta %}
+                
+                <!-- ALLARME: Lotti Scaduti (Rosso - Critico) -->
+                {% if lotti_scaduti %}
+                <div class="warning-sidebar-card danger">
+                    <div class="warning-header">
+                        <span style="font-size: 1rem;">🚨</span>
+                        <span class="warning-title">Lotti Scaduti</span>
+                        <span class="warning-badge danger">Critico ({{ lotti_scaduti|length }})</span>
+                    </div>
+                    <div class="alert-list">
+                        {% for lot in lotti_scaduti %}
+                        <div class="alert-item">
+                            <div class="alert-item-header">
+                                <span class="alert-mp-name" title="{{ lot.nome_mp }}">{{ lot.nome_mp }}</span>
+                                <span class="alert-item-badge danger">{{ lot.lotto_interno }}</span>
+                            </div>
+                            <div class="alert-item-meta">
+                                <span>Codice: <code style="color: var(--text-secondary); font-size: 0.7rem;">{{ lot.codice_mp }}</code></span>
+                                <span>Giacenza: <strong style="color: #ff8a9e;">{{ lot.giacenza }}</strong></span>
+                            </div>
+                            <div class="alert-item-footer">
+                                <span style="color: #ff8a9e; font-weight: 600;">Scaduto il {{ lot.data_scadenza | dateformat }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div style="margin-top: 0.8rem; text-align: center;">
+                        <a href="{{ url_for('lotti_list') }}" style="color: #ff8a9e; font-size: 0.72rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.2rem; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
+                            Gestisci nel Registro Lotti &rarr;
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- PREAVVISO: Lotti in Scadenza Imminente (Giallo/Ambra - Info) -->
+                {% if lotti_in_scadenza %}
+                <div class="warning-sidebar-card warning">
+                    <div class="warning-header">
+                        <span style="font-size: 1rem;">⚠️</span>
+                        <span class="warning-title">Scadenze Imminenti</span>
+                        <span class="warning-badge warning">30 gg ({{ lotti_in_scadenza|length }})</span>
+                    </div>
+                    <div class="alert-list">
+                        {% for lot in lotti_in_scadenza %}
+                        <div class="alert-item">
+                            <div class="alert-item-header">
+                                <span class="alert-mp-name" title="{{ lot.nome_mp }}">{{ lot.nome_mp }}</span>
+                                <span class="alert-item-badge warning">{{ lot.lotto_interno }}</span>
+                            </div>
+                            <div class="alert-item-meta">
+                                <span>Giacenza: <strong>{{ lot.giacenza }}</strong></span>
+                                <span style="color: #ffd166; font-weight: 600;">{{ lot.giorni_rimanenti }} gg rim.</span>
+                            </div>
+                            <div class="alert-item-footer">
+                                <span style="color: var(--text-secondary);">Scade il {{ lot.data_scadenza | dateformat }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div style="margin-top: 0.8rem; text-align: center;">
+                        <a href="{{ url_for('lotti_list') }}" style="color: #ffd166; font-size: 0.72rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.2rem; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
+                            Apri Registro Lotti &rarr;
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- ALLARME: Sotto Scorta Minima (Arancione) -->
+                {% if sotto_scorta %}
+                <div class="warning-sidebar-card understock">
+                    <div class="warning-header">
+                        <span style="font-size: 1rem;">📦</span>
+                        <span class="warning-title">Sotto Scorta Minima</span>
+                        <span class="warning-badge understock">Soglia ({{ sotto_scorta|length }})</span>
+                    </div>
+                    <div class="alert-list">
+                        {% for item in sotto_scorta %}
+                        <div class="alert-item">
+                            <div class="alert-item-header">
+                                <span class="alert-mp-name" title="{{ item.nome_mp }}">{{ item.nome_mp }}</span>
+                                <span class="alert-item-badge understock">{{ item.codice }}</span>
+                            </div>
+                            <div class="alert-item-meta">
+                                <span>Giacenza: <strong style="color: #ffaa66;">{{ item.giacenza_totale }}</strong></span>
+                                <span>Scorta Minima: <strong style="color: var(--text-pale);">{{ item.scorta_minima }}</strong></span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div style="margin-top: 0.8rem; text-align: center;">
+                        <a href="{{ url_for('magazzino') }}" style="color: #ffaa66; font-size: 0.72rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.2rem; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
+                            Monitora Inventario &rarr;
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+
+            {% else %}
+                <!-- STATO DI SUCCESSO: Niente da segnalare -->
+                <div class="no-alerts-card">
+                    <div class="no-alerts-icon">🛡️</div>
+                    <h4>Niente da segnalare</h4>
+                    <p>Il magazzino è sotto controllo. Non ci sono scadenze imminenti o lotti sotto scorta minima.</p>
+                </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -20,6 +20,128 @@
     .dataTables_paginate .paginate_button.current { background: var(--gradient) !important; border: none !important; color: white !important; }
     .dataTables_filter { margin-bottom: 2rem; }
     .dataTables_filter input { width: 300px; padding: 10px; }
+
+    /* Stili per il Modal di Modifica Materia Prima */
+    #mpTable tbody tr {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+    #mpTable tbody tr:hover {
+        background-color: var(--card-hover-bg) !important;
+    }
+    .edit-modal {
+        display: none;
+        position: fixed;
+        z-index: 3000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .edit-modal.show {
+        display: flex;
+        opacity: 1;
+    }
+    .edit-modal-content {
+        background: var(--card-bg);
+        padding: 2.5rem;
+        border: 1px solid var(--border-color);
+        width: 90%;
+        max-width: 750px;
+        border-radius: 1.25rem;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.7);
+        transform: scale(0.9);
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    .edit-modal.show .edit-modal-content {
+        transform: scale(1);
+    }
+    .edit-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 1rem;
+    }
+    .edit-modal-header h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: var(--text-primary);
+    }
+    .edit-close-btn {
+        font-size: 1.75rem;
+        cursor: pointer;
+        color: var(--text-secondary);
+        transition: color 0.2s ease;
+        background: none;
+        border: none;
+    }
+    .edit-close-btn:hover {
+        color: white;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+    }
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .form-group label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+    .form-group input, .form-group select {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-color);
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        color: white;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+    .form-group input:focus, .form-group select:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        background: rgba(255, 255, 255, 0.06);
+    }
+    .modal-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        border-top: 1px solid var(--border-color);
+        padding-top: 1.5rem;
+    }
+    .btn-reset {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-pale);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .btn-reset:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+    .btn-delete {
+        background: var(--danger);
+        color: white;
+    }
+    .btn-delete:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
 </style>
 
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
@@ -43,7 +165,17 @@
         </thead>
         <tbody>
             {% for product in products %}
-            <tr>
+            <tr onclick="openEditModal(this)"
+                data-codice="{{ product['codice'] }}"
+                data-nome_mp="{{ product['nome_mp'] }}"
+                data-nome_file="{{ product['nome_file'] or '' }}"
+                data-nome_etichetta="{{ product['nome_etichetta'] or '' }}"
+                data-unita_misura="{{ product['unita_misura'] }}"
+                data-codice_fornitore="{{ product['codice_fornitore'] or '' }}"
+                data-uso="{{ product['uso'] }}"
+                data-scorta_minima="{{ product['scorta_minima'] or 0 }}"
+                data-controcampione="{{ product['controcampione'] or 'NO' }}"
+                data-distribuzione="{{ product['distribuzione'] or 'NO' }}">
                 <td><strong>{{ product['nome_mp'] }}</strong></td>
                 <td><span class="badge">{{ product['codice'] }}</span></td>
                 <td>{{ product['unita_misura'] }}</td>
@@ -56,7 +188,84 @@
     </table>
 </div>
 
-<!-- Scripts per DataTables -->
+<!-- Modal di Modifica Materia Prima -->
+<div id="editMpModal" class="edit-modal" onclick="closeEditModalOutside(event)">
+    <div class="edit-modal-content">
+        <div class="edit-modal-header">
+            <h3>📝 Modifica Materia Prima</h3>
+            <button class="edit-close-btn" onclick="closeEditModal()">&times;</button>
+        </div>
+        
+        <form id="editMpForm" method="post" action="{{ url_for('update_product') }}">
+            <!-- Campo nascosto per il codice originale (identificativo WHERE) -->
+            <input type="hidden" name="original_codice" id="edit_original_codice">
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="edit_codice">Codice Interno *</label>
+                    <input type="text" name="codice" id="edit_codice" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_nome_mp">Nome Materia Prima *</label>
+                    <input type="text" name="nome_mp" id="edit_nome_mp" required>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="edit_nome_file">Nome File *</label>
+                    <input type="text" name="nome_file" id="edit_nome_file" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_nome_etichetta">Nome per Etichette *</label>
+                    <input type="text" name="nome_etichetta" id="edit_nome_etichetta" required>
+                </div>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="edit_unita_misura">Unità di Misura *</label>
+                    <input type="text" name="unita_misura" id="edit_unita_misura" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_uso">Destinazione d'uso *</label>
+                    <input type="text" name="uso" id="edit_uso" required>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="edit_scorta_minima">Quantità Minima (Opzionale)</label>
+                    <input type="number" step="0.01" name="scorta_minima" id="edit_scorta_minima">
+                </div>
+                <div></div> <!-- Spazio vuoto per bilanciare il grid -->
+            </div>
+
+            <!-- Campi nascosti non modificabili in questa vista -->
+            <input type="hidden" name="codice_fornitore" id="edit_codice_fornitore">
+            <input type="hidden" name="controcampione" id="edit_controcampione">
+            <input type="hidden" name="distribuzione" id="edit_distribuzione">
+            
+            <p style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 1rem;">* Campi obbligatori</p>
+
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary" style="flex: 2;">Salva</button>
+                <button type="button" class="btn btn-reset" onclick="resetEditForm()" style="flex: 1.5;">Resetta</button>
+                <button type="button" class="btn btn-delete" onclick="deleteProduct()" style="flex: 1.5;">Elimina</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Form nascosto per l'eliminazione -->
+<form id="deleteMpForm" method="post" action="{{ url_for('delete_product') }}" style="display: none;">
+    <input type="hidden" name="codice" id="delete_codice">
+</form>
+
+<!-- Scripts per DataTables e Modifica -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
@@ -69,5 +278,83 @@
             "order": [[ 0, "asc" ]] // Ordina per Nome Materia Prima (ora colonna 0)
         });
     });
+
+    // Logica di Modifica
+    let originalValues = {};
+
+    function openEditModal(row) {
+        // Recupera i dati dagli attributi della riga
+        const data = {
+            codice: row.getAttribute('data-codice') || '',
+            nome_mp: row.getAttribute('data-nome_mp') || '',
+            nome_file: row.getAttribute('data-nome_file') || '',
+            nome_etichetta: row.getAttribute('data-nome_etichetta') || '',
+            unita_misura: row.getAttribute('data-unita_misura') || '',
+            codice_fornitore: row.getAttribute('data-codice_fornitore') || '',
+            uso: row.getAttribute('data-uso') || '',
+            scorta_minima: row.getAttribute('data-scorta_minima') || '0',
+            controcampione: row.getAttribute('data-controcampione') || 'NO',
+            distribuzione: row.getAttribute('data-distribuzione') || 'NO'
+        };
+
+        // Salva lo stato originale
+        originalValues = { ...data };
+
+        // Popola i campi del form
+        document.getElementById('edit_original_codice').value = data.codice;
+        document.getElementById('edit_codice').value = data.codice;
+        document.getElementById('edit_nome_mp').value = data.nome_mp;
+        document.getElementById('edit_nome_file').value = data.nome_file;
+        document.getElementById('edit_nome_etichetta').value = data.nome_etichetta;
+        document.getElementById('edit_unita_misura').value = data.unita_misura;
+        document.getElementById('edit_codice_fornitore').value = data.codice_fornitore;
+        document.getElementById('edit_uso').value = data.uso;
+        document.getElementById('edit_scorta_minima').value = data.scorta_minima;
+        document.getElementById('edit_controcampione').value = data.controcampione;
+        document.getElementById('edit_distribuzione').value = data.distribuzione;
+
+        // Mostra il modal con transizione
+        const modal = document.getElementById('editMpModal');
+        modal.style.display = 'flex';
+        modal.offsetHeight; // Trigger reflow
+        modal.classList.add('show');
+    }
+
+    function closeEditModal() {
+        const modal = document.getElementById('editMpModal');
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+
+    function closeEditModalOutside(event) {
+        if (event.target.id === 'editMpModal') {
+            closeEditModal();
+        }
+    }
+
+    function resetEditForm() {
+        // Ripristina i valori originali salvati prima delle modifiche nel modal
+        document.getElementById('edit_codice').value = originalValues.codice;
+        document.getElementById('edit_nome_mp').value = originalValues.nome_mp;
+        document.getElementById('edit_nome_file').value = originalValues.nome_file;
+        document.getElementById('edit_nome_etichetta').value = originalValues.nome_etichetta;
+        document.getElementById('edit_unita_misura').value = originalValues.unita_misura;
+        document.getElementById('edit_codice_fornitore').value = originalValues.codice_fornitore;
+        document.getElementById('edit_uso').value = originalValues.uso;
+        document.getElementById('edit_scorta_minima').value = originalValues.scorta_minima;
+        document.getElementById('edit_controcampione').value = originalValues.controcampione;
+        document.getElementById('edit_distribuzione').value = originalValues.distribuzione;
+    }
+
+    function deleteProduct() {
+        const codice = originalValues.codice;
+        const nome = originalValues.nome_mp;
+        if (confirm(`Sei sicuro di voler eliminare la materia prima "${nome}" (${codice})?\n\nATTENZIONE: Verranno eliminati permanentemente anche tutti i lotti ed i registri di scarico associati!`)) {
+            document.getElementById('delete_codice').value = codice;
+            document.getElementById('deleteMpForm').submit();
+        }
+    }
 </script>
 {% endblock %}

@@ -1,0 +1,370 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
+    
+    <!-- Intestazione -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <div>
+            <h2 style="font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; color: white;">Storico Operazioni</h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem;">Tracciabilità completa e Registro di Audit (Data Integrity GMP/GLP)</p>
+        </div>
+    </div>
+
+    <!-- Barra di Ricerca & Filtri Dinamici -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: 1rem; backdrop-filter: blur(10px); display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;">
+        
+        <!-- Input Cerca -->
+        <div style="flex: 2; min-width: 250px; position: relative;">
+            <label for="auditSearch" style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.4rem; display: block;">Ricerca Testo</label>
+            <input type="text" id="auditSearch" placeholder="Cerca per operatore, materiale, lotto..." onkeyup="filterAuditTrail()" style="padding: 0.65rem 1rem;">
+        </div>
+
+        <!-- Filtro Azione -->
+        <div style="flex: 1; min-width: 150px;">
+            <label for="filterAzione" style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.4rem; display: block;">Tipo Azione</label>
+            <select id="filterAzione" onchange="filterAuditTrail()" style="padding: 0.65rem 1rem; cursor: pointer;">
+                <option value="">Tutte le azioni</option>
+                <option value="INSERIMENTO">INSERIMENTO</option>
+                <option value="MODIFICA">MODIFICA</option>
+                <option value="ELIMINAZIONE">ELIMINAZIONE</option>
+                <option value="APPROVAZIONE_QC">APPROVAZIONE QC</option>
+                <option value="SCARICO_MANUALE">SCARICO MANUALE</option>
+                <option value="SCARICO_AUTOMATICO">SCARICO AUTOMATICO</option>
+            </select>
+        </div>
+
+        <!-- Filtro Tabella -->
+        <div style="flex: 1; min-width: 150px;">
+            <label for="filterTabella" style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.4rem; display: block;">Tabella</label>
+            <select id="filterTabella" onchange="filterAuditTrail()" style="padding: 0.65rem 1rem; cursor: pointer;">
+                <option value="">Tutte le tabelle</option>
+                <option value="Elenco_MP">Elenco_MP (Materie Prime)</option>
+                <option value="Lotti_Interni">Lotti_Interni (Lotti)</option>
+                <option value="Scarichi">Scarichi (Prelievi)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Tabella Storico Operazioni -->
+    <div class="table-container">
+        <table id="auditTable">
+            <thead>
+                <tr>
+                    <th style="width: 18%;">Data e Ora</th>
+                    <th style="width: 20%;">Azione</th>
+                    <th style="width: 20%;">Operatore</th>
+                    <th style="width: 18%;">Tabella</th>
+                    <th style="width: 14%; text-align: center;">Dettagli</th>
+                </tr>
+            </thead>
+            <tbody id="auditTableBody">
+                {% if audit_records %}
+                    {% for record in audit_records %}
+                    <tr class="audit-row" 
+                        data-azione="{{ record.azione }}" 
+                        data-tabella="{{ record.tabella_interessata }}"
+                        data-text="{{ record.operatore | lower }} {{ record.tabella_interessata | lower }} {{ record.azione | lower }} {{ record.data_ora | lower }} {{ record.vecchio_valore | lower }} {{ record.nuovo_valore | lower }}">
+                        
+                        <td style="font-family: monospace; font-size: 0.85rem; color: var(--text-pale); font-weight: 600;">
+                            {{ record.data_ora }}
+                        </td>
+                        <td>
+                            {% if record.azione == 'INSERIMENTO' %}
+                                <span class="badge" style="background: rgba(6, 182, 212, 0.12); color: #06b6d4; border-color: rgba(6, 182, 212, 0.3); font-size: 0.75rem;">📥 INSERIMENTO</span>
+                            {% elif record.azione == 'MODIFICA' %}
+                                <span class="badge" style="background: rgba(79, 70, 229, 0.12); color: #818cf8; border-color: rgba(79, 70, 229, 0.3); font-size: 0.75rem;">✏️ MODIFICA</span>
+                            {% elif record.azione == 'ELIMINAZIONE' %}
+                                <span class="badge" style="background: rgba(244, 63, 94, 0.12); color: #f43f5e; border-color: rgba(244, 63, 94, 0.3); font-size: 0.75rem;">🗑️ ELIMINAZIONE</span>
+                            {% elif record.azione == 'APPROVAZIONE_QC' %}
+                                <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #34d399; border-color: rgba(16, 185, 129, 0.3); font-size: 0.75rem;">🛡️ APPROVAZIONE QC</span>
+                            {% elif record.azione == 'SCARICO_MANUALE' %}
+                                <span class="badge" style="background: rgba(249, 115, 22, 0.12); color: #fb923c; border-color: rgba(249, 115, 22, 0.3); font-size: 0.75rem;">📉 SCARICO MANUALE</span>
+                            {% elif record.azione == 'SCARICO_AUTOMATICO' %}
+                                <span class="badge" style="background: rgba(236, 72, 153, 0.12); color: #f472b6; border-color: rgba(236, 72, 153, 0.3); font-size: 0.75rem;">⚡ SCARICO AUTOMATICO</span>
+                            {% else %}
+                                <span class="badge" style="font-size: 0.75rem;">{{ record.azione }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-weight: 600; color: white;">
+                            {{ record.operatore or 'Sistema' }}
+                        </td>
+                        <td>
+                            <code style="background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.06); font-size: 0.8rem; color: var(--text-secondary);">
+                                {{ record.tabella_interessata }}
+                            </code>
+                        </td>
+                        <td style="text-align: center;">
+                            <button class="btn" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); padding: 0.35rem 0.75rem; border-radius: 0.5rem; font-size: 0.8rem; cursor: pointer; color: var(--text-pale); transition: all 0.2s;" 
+                                    onmouseover="this.style.background='rgba(255,255,255,0.08)'; this.style.borderColor='rgba(255,255,255,0.25)';" 
+                                    onmouseout="this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='rgba(255,255,255,0.1)';"
+                                    onclick="showAuditDetails('{{ record.azione }}', '{{ record.tabella_interessata }}', '{{ record.operatore or "Sistema" }}', '{{ record.data_ora }}', `{{ record.vecchio_valore or '' }}`, `{{ record.nuovo_valore or '' }}`)">
+                                🔍 Vedi Dettagli
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 3rem 1.5rem;">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📜</div>
+                            Nessuna operazione registrata nello storico di audit.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Dettagli Audit -->
+<div id="auditDetailModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(8, 11, 17, 0.85); backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 1.25rem; width: 90%; max-width: 800px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+        
+        <!-- Modal Header -->
+        <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="font-size: 1.1rem; color: white; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>📜</span> Dettagli Operazione Tracciata
+                </h3>
+            </div>
+            <button onclick="closeAuditModal()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-secondary)'">&times;</button>
+        </div>
+        
+        <!-- Modal Body -->
+        <div style="padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Tabella Meta Dati -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.03);">
+                <div>
+                    <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Azione</span>
+                    <strong id="auditAction" style="display: block; font-size: 0.9rem; color: var(--accent-color); margin-top: 0.2rem;">-</strong>
+                </div>
+                <div>
+                    <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Tabella</span>
+                    <strong id="auditModalTable" style="display: block; font-size: 0.9rem; color: white; margin-top: 0.2rem;">-</strong>
+                </div>
+                <div>
+                    <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Operatore</span>
+                    <strong id="auditOperator" style="display: block; font-size: 0.9rem; color: white; margin-top: 0.2rem;">-</strong>
+                </div>
+                <div>
+                    <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Data e Ora</span>
+                    <strong id="auditDate" style="display: block; font-size: 0.9rem; color: white; margin-top: 0.2rem;">-</strong>
+                </div>
+            </div>
+            
+            <!-- Side by Side Values -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <!-- Vecchio Valore -->
+                <div>
+                    <h4 style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--danger); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem; border-bottom: 1px solid rgba(244,63,94,0.15); padding-bottom: 0.4rem;">
+                        <span>❌</span> Stato Precedente
+                    </h4>
+                    <div id="auditOldValue" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.03); border-radius: 0.75rem; padding: 0.75rem; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">
+                        -
+                    </div>
+                </div>
+                
+                <!-- Nuovo Valore -->
+                <div>
+                    <h4 style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--success); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem; border-bottom: 1px solid rgba(16,185,129,0.15); padding-bottom: 0.4rem;">
+                        <span>✔️</span> Nuovo Stato / Modifica
+                    </h4>
+                    <div id="auditNewValue" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.03); border-radius: 0.75rem; padding: 0.75rem; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">
+                        -
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal Footer -->
+        <div style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); text-align: right; background: rgba(0,0,0,0.15);">
+            <button class="btn btn-primary" onclick="closeAuditModal()" style="padding: 0.5rem 1.5rem; font-size: 0.9rem;">Chiudi</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Filtri dinamici client-side
+    function filterAuditTrail() {
+        const searchText = document.getElementById("auditSearch").value.toLowerCase();
+        const actionFilter = document.getElementById("filterAzione").value;
+        const tableFilter = document.getElementById("filterTabella").value;
+        
+        const rows = document.querySelectorAll(".audit-row");
+        
+        rows.forEach(row => {
+            const textMatch = searchText === "" || row.getAttribute("data-text").includes(searchText);
+            const actionMatch = actionFilter === "" || row.getAttribute("data-azione") === actionFilter;
+            const tableMatch = tableFilter === "" || row.getAttribute("data-tabella") === tableFilter;
+            
+            if (textMatch && actionMatch && tableMatch) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
+
+    // Apertura modal dettagli con confronto a specchio sincronizzato e highlight delle differenze
+    function showAuditDetails(azione, tabella, operatore, dataOra, vecchioVal, nuovoVal) {
+        document.getElementById('auditAction').innerText = azione.replace('_', ' ');
+        document.getElementById('auditModalTable').innerText = tabella;
+        document.getElementById('auditOperator').innerText = operatore;
+        document.getElementById('auditDate').innerText = dataOra;
+        
+        const oldContainer = document.getElementById('auditOldValue');
+        const newContainer = document.getElementById('auditNewValue');
+        
+        oldContainer.innerHTML = '';
+        newContainer.innerHTML = '';
+        
+        let oldObj = null;
+        let newObj = null;
+        
+        try {
+            if (vecchioVal && vecchioVal !== 'None' && vecchioVal.trim() !== '') {
+                oldObj = JSON.parse(vecchioVal);
+            }
+        } catch(e) {
+            console.error("Errore nel parsing del vecchio valore:", e);
+        }
+        
+        try {
+            if (nuovoVal && nuovoVal !== 'None' && nuovoVal.trim() !== '') {
+                newObj = JSON.parse(nuovoVal);
+            }
+        } catch(e) {
+            console.error("Errore nel parsing del nuovo valore:", e);
+        }
+        
+        const hasOld = oldObj && Object.keys(oldObj).length > 0;
+        const hasNew = newObj && Object.keys(newObj).length > 0;
+        
+        if (!hasOld && !hasNew) {
+            oldContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-secondary); font-style:italic;">Dati non disponibili</div>';
+            newContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-secondary); font-style:italic;">Dati non disponibili</div>';
+            document.getElementById('auditDetailModal').style.display = 'flex';
+            return;
+        }
+        
+        if (!hasOld) {
+            oldContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-secondary); font-style:italic;">Nessuno stato precedente<br>(Operazione di inserimento)</div>';
+        }
+        
+        if (!hasNew) {
+            newContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-secondary); font-style:italic;">Nessuno stato successivo<br>(Operazione di eliminazione)</div>';
+        }
+        
+        // Estrarre tutte le chiavi uniche da entrambi gli oggetti nello stesso ordine
+        const keysSet = new Set([
+            ...Object.keys(oldObj || {}),
+            ...Object.keys(newObj || {})
+        ]);
+        const allKeys = Array.from(keysSet);
+        
+        // Creazione tabelle sincronizzate
+        const oldTable = document.createElement('table');
+        const newTable = document.createElement('table');
+        
+        const tableStyles = {
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: '0.8rem'
+        };
+        
+        Object.assign(oldTable.style, tableStyles);
+        Object.assign(newTable.style, tableStyles);
+        
+        allKeys.forEach(key => {
+            const valOldRaw = oldObj ? oldObj[key] : undefined;
+            const valNewRaw = newObj ? newObj[key] : undefined;
+            
+            // Valori normalizzati per il confronto e la visualizzazione
+            const valOldDisplay = valOldRaw === null ? 'NULL' : (valOldRaw === undefined ? '-' : String(valOldRaw));
+            const valNewDisplay = valNewRaw === null ? 'NULL' : (valNewRaw === undefined ? '-' : String(valNewRaw));
+            
+            // Il campo è considerato modificato solo se entrambi gli stati esistono ed i valori differiscono
+            const isDifferent = hasOld && hasNew && valOldDisplay !== valNewDisplay;
+            
+            // Riga Stato Precedente
+            if (hasOld) {
+                const trOld = document.createElement('tr');
+                trOld.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+                trOld.style.transition = 'background-color 0.2s';
+                if (isDifferent) {
+                    trOld.style.backgroundColor = 'rgba(244, 63, 94, 0.09)'; // Delicato rosso evidenziatore
+                }
+                
+                const tdKey = document.createElement('td');
+                tdKey.style.padding = '8px 10px';
+                tdKey.style.fontWeight = '600';
+                tdKey.style.color = 'var(--text-secondary)';
+                tdKey.style.width = '40%';
+                tdKey.style.verticalAlign = 'top';
+                tdKey.innerText = key;
+                
+                const tdVal = document.createElement('td');
+                tdVal.style.padding = '8px 10px';
+                tdVal.style.color = isDifferent ? '#f87171' : 'var(--text-pale)';
+                tdVal.style.fontWeight = isDifferent ? '600' : 'normal';
+                tdVal.style.wordBreak = 'break-all';
+                tdVal.style.verticalAlign = 'top';
+                tdVal.innerText = valOldDisplay;
+                
+                trOld.appendChild(tdKey);
+                trOld.appendChild(tdVal);
+                oldTable.appendChild(trOld);
+            }
+            
+            // Riga Stato Successivo
+            if (hasNew) {
+                const trNew = document.createElement('tr');
+                trNew.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+                trNew.style.transition = 'background-color 0.2s';
+                if (isDifferent) {
+                    trNew.style.backgroundColor = 'rgba(16, 185, 129, 0.09)'; // Delicato verde evidenziatore
+                }
+                
+                const tdKey = document.createElement('td');
+                tdKey.style.padding = '8px 10px';
+                tdKey.style.fontWeight = '600';
+                tdKey.style.color = 'var(--text-secondary)';
+                tdKey.style.width = '40%';
+                tdKey.style.verticalAlign = 'top';
+                tdKey.innerText = key;
+                
+                const tdVal = document.createElement('td');
+                tdVal.style.padding = '8px 10px';
+                tdVal.style.color = isDifferent ? '#34d399' : 'var(--text-pale)';
+                tdVal.style.fontWeight = isDifferent ? '600' : 'normal';
+                tdVal.style.wordBreak = 'break-all';
+                tdVal.style.verticalAlign = 'top';
+                tdVal.innerText = valNewDisplay;
+                
+                trNew.appendChild(tdKey);
+                trNew.appendChild(tdVal);
+                newTable.appendChild(trNew);
+            }
+        });
+        
+        if (hasOld) oldContainer.appendChild(oldTable);
+        if (hasNew) newContainer.appendChild(newTable);
+        
+        document.getElementById('auditDetailModal').style.display = 'flex';
+    }
+
+    // Chiusura modal
+    function closeAuditModal() {
+        document.getElementById('auditDetailModal').style.display = 'none';
+    }
+    
+    // Chiude cliccando all'esterno del modal content
+    document.getElementById('auditDetailModal').onclick = function(event) {
+        if (event.target === this) {
+            closeAuditModal();
+        }
+    };
+</script>
+{% endblock %}
