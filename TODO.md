@@ -1,6 +1,6 @@
 # 📝 Roadmap Sviluppo Futuro: Sistema di Backup & Ripristino 🧪
 
-Questa TODO list traccia i passaggi pianificati per implementare un sistema di sicurezza dei dati a doppia barriera (locale/cloud) e un'interfaccia di ripristino self-service all'interno di **Gestore-Lab**.
+Questa TODO list traccia i passaggi pianificati per implementare un sistema di sicurezza dei dati a doppia barriera (locale/cloud), un'interfaccia di ripristino self-service e una serie di funzionalità avanzate per la tracciabilità professionale in conformità con gli standard di laboratorio (GMP/GLP) in **Gestore-Lab**.
 
 ---
 
@@ -45,3 +45,30 @@ L'obiettivo è consentire agli operatori del laboratorio di gestire ed effettuar
 *   [ ] **Script Batch di Ripristino Esterno**
     *   [ ] Creare un file `Ripristina_Database.bat` nella cartella principale del progetto.
     *   [ ] In caso di corruzione grave in cui il server Flask non si avvia, lo script deve consentire all'utente di selezionare e ripristinare l'ultimo backup funzionante direttamente dal terminale Windows.
+
+---
+
+## 🚀 Fase 4: Funzionalità Avanzate & Tracciabilità Professionale (GMP/GLP Ready)
+
+L'obiettivo è elevare il livello di qualità, tracciabilità e conformità regolatoria del software per contesti industriali/clinici.
+
+*   [ ] **Blocco di Sicurezza "QC Gate" (Controllo Qualità)**
+    *   [ ] Nella pagina di **Scarico Automatico (Picking List)**, impedire la selezione di lotti che non abbiano lo stato `appr = 'OK'` (Approvato QC).
+    *   [ ] Visualizzare un badge rosso bloccante in corrispondenza dei lotti in stato di quarantena o non ancora approvati.
+*   [ ] **Avvisi e Notifiche di Scadenza (Early Warning Dashboard)**
+    *   [ ] Mostrare avvisi di tipo *Warning* sulla Dashboard per i lotti attivi che **scadranno entro i prossimi 15-30 giorni**.
+    *   [ ] Visualizzare alert bloccanti per eventuali lotti scaduti ancora disponibili a magazzino.
+    *   [ ] Evidenziare in arancione i prodotti che si trovano sotto la soglia di **Scorta Minima**.
+*   [ ] **Integrazione con Lettori Barcode / QR Code**
+    *   [ ] Aggiungere un input globale o tasto di ricerca rapida con focus automatico per scansionare etichette.
+    *   [ ] Permettere l'identificazione istantanea del lotto scansionato per compilare i campi del prelievo senza digitazione.
+*   [ ] **Registro Modifiche ed Audit Trail (Data Integrity)**
+    *   [ ] Creare la tabella `Audit_Trail` nel database (`id`, `data_ora`, `operatore`, `azione`, `tabella_interessata`, `vecchio_valore`, `nuovo_valore`).
+    *   [ ] Salvare in automatico ogni modifica o eliminazione di lotti/prodotti effettuata dagli operatori per garantire la conformità con i requisiti regolatori sulla tracciabilità dei dati.
+*   [ ] **Statistiche di Consumo & Data Visualization**
+    *   [ ] Integrare la libreria *Chart.js* per visualizzare grafici ad area/linee.
+    *   [ ] Mostrare il trend dei consumi mensili delle materie prime chiave (es. O-18 acqua, cassette di sintesi).
+    *   [ ] Monitorare il numero di cicli di sintesi eseguiti e i lotti prodotti.
+*   [ ] **Ottimizzazione Interfaccia Touch & Tablet (Cleanroom Friendly)**
+    *   [ ] Ottimizzare il layout CSS per schermi tablet da 10 pollici (pulsanti e righe delle tabelle più grandi per facilitare l'uso con guanti in laboratorio).
+    *   [ ] Rendere la compilazione della picking list di produzione interamente spuntabile a schermo tramite pulsanti touch veloci.
