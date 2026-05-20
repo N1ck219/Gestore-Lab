@@ -25,6 +25,12 @@
         border-radius: 4px;
         font-weight: bold;
         font-size: 0.75rem;
+        cursor: pointer;
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
+    }
+    .status-badge:hover {
+        transform: scale(1.1);
+        filter: brightness(1.2);
     }
     .status-ok { background-color: var(--success); color: white; }
     .status-none { background-color: #334155; color: #64748b; }
@@ -96,9 +102,9 @@
                 <td><small>{{ lotto['data_arrivo'] | dateformat }}</small></td>
                 <td><small>{{ lotto['data_scadenza'] | dateformat }}</small></td>
                 <td><strong style="color: var(--accent-color)">{{ lotto['giacenza'] or '-' }}</strong></td>
-                <td>{% if lotto['appr']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
+                <td onclick="handleApprClick(event, {{ lotto | tojson | forceescape }})">{% if lotto['appr']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
                 <td>{% if lotto['etich']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
-                <td>{% if lotto['cc']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
+                <td onclick="handleCcClick(event, {{ lotto | tojson | forceescape }})">{% if lotto['cc']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -155,6 +161,40 @@
     </div>
 </div>
 
+<!-- Modal Approva Lotto -->
+<div id="apprModal" class="modal">
+    <div class="modal-content" style="max-width: 450px;">
+        <span class="close" onclick="closeApprModal()">&times;</span>
+        <h3 style="color: var(--accent-color); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>✔️</span> Approva Lotto
+        </h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.5;">
+            Inserisci la data di approvazione per il lotto <strong id="appr-lotto-code" style="color: white; background: rgba(6,182,212,0.15); padding: 2px 6px; border-radius: 4px;"></strong>:
+        </p>
+        <form id="apprForm" onsubmit="submitApproval(event)">
+            <input type="hidden" id="appr-lotto-val" name="lotto_interno">
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label for="appr-date">Data Approvazione *</label>
+                <input type="date" id="appr-date" name="data_approvazione" required style="border: 1px solid var(--border-color); border-radius: 0.5rem;">
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Registra</button>
+                <button type="button" class="btn" style="background: rgba(255,255,255,0.05); color: white; flex: 1;" onclick="closeApprModal()">Annulla</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Info Personalizzato -->
+<div id="customInfoModal" class="modal">
+    <div class="modal-content" style="max-width: 450px; text-align: center;">
+        <span class="close" onclick="closeInfoModal()">&times;</span>
+        <h3 id="info-modal-title" style="color: var(--accent-color); margin-bottom: 1.5rem;">Informazione</h3>
+        <p id="info-modal-text" style="color: var(--text-pale); margin-bottom: 2rem; font-size: 1rem; line-height: 1.6;"></p>
+        <button type="button" class="btn btn-primary" style="width: 100%;" onclick="closeInfoModal()">Chiudi</button>
+    </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
@@ -196,9 +236,126 @@
         document.getElementById('detailModal').style.display = "none";
     }
 
+    // --- LOGICA MODAL APPROVAZIONE RAPIDA ---
+    function openApprModal(lotto) {
+        document.getElementById('appr-lotto-code').innerText = lotto.lotto_interno;
+        document.getElementById('appr-lotto-val').value = lotto.lotto_interno;
+        // Imposta data odierna come default in formato YYYY-MM-DD
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('appr-date').value = today;
+        document.getElementById('apprModal').style.display = "block";
+    }
+
+    function closeApprModal() {
+        document.getElementById('apprModal').style.display = "none";
+    }
+
+    function submitApproval(event) {
+        event.preventDefault();
+        const lotto_interno = document.getElementById('appr-lotto-val').value;
+        const data_approvazione = document.getElementById('appr-date').value;
+
+        fetch('/api/approva_lotto', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ lotto_interno, data_approvazione })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                closeApprModal();
+                window.location.reload();
+            } else {
+                alert("Errore durante l'approvazione: " + data.message);
+            }
+        })
+        .catch(err => {
+            console.error("Errore invio approvazione:", err);
+            alert("Errore di connessione al server.");
+        });
+    }
+
+    // --- LOGICA CUSTOM INFO MODAL ---
+    function showCustomAlert(title, text) {
+        document.getElementById('info-modal-title').innerText = title;
+        document.getElementById('info-modal-text').innerHTML = text;
+        document.getElementById('customInfoModal').style.display = "block";
+    }
+
+    function closeInfoModal() {
+        document.getElementById('customInfoModal').style.display = "none";
+    }
+
+    // --- HANDLER CLICK SPECIFICI COLONNA APPR / CC ---
+    function handleApprClick(event, lotto) {
+        event.stopPropagation(); // Evita apertura dettagli generali
+        
+        const isApproved = lotto.appr && (lotto.appr.toLowerCase() === 'ok' || lotto.appr.toLowerCase() === 'si' || lotto.appr.toLowerCase() === 'sì');
+        
+        if (isApproved) {
+            const dataApprFormatted = formatDateDisplay(lotto.data_approvazione);
+            showCustomAlert("Approvazione Lotto", `Lotto <strong>${lotto.lotto_interno}</strong> approvato il <strong>${dataApprFormatted}</strong>.`);
+        } else {
+            openApprModal(lotto);
+        }
+    }
+
+    function handleCcClick(event, lotto) {
+        event.stopPropagation(); // Evita apertura dettagli generali
+        
+        const isCcDone = lotto.cc && (lotto.cc.toLowerCase() === 'ok' || lotto.cc.toLowerCase() === 'si' || lotto.cc.toLowerCase() === 'sì');
+        
+        if (isCcDone) {
+            fetch(`/api/cc_info/${encodeURIComponent(lotto.lotto_interno)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.found) {
+                        const dateFormatted = formatDateDisplay(data.data);
+                        showCustomAlert("Dettagli Controcampione", `Controcampione eseguito in data <strong>${dateFormatted}</strong> dall'operatore <strong>${data.operatore}</strong>.`);
+                    } else {
+                        showCustomAlert("Dettagli Controcampione", `Controcampione registrato come eseguito (dettagli di scarico non trovati nel database).`);
+                    }
+                })
+                .catch(err => {
+                    console.error("Errore recupero info CC:", err);
+                    showCustomAlert("Dettagli Controcampione", `Controcampione registrato come eseguito.`);
+                });
+        } else {
+            // Costruisce i parametri GET per la precompilazione dello scarico manuale
+            const queryParams = new URLSearchParams({
+                materiale_codice: lotto.codice_mp || '',
+                lotto_interno: lotto.lotto_interno || '',
+                nome_mp: lotto.nome_mp || '',
+                causale: 'Controcampione',
+                quantita: '1'
+            });
+            window.location.href = `/scarico_manuale?${queryParams.toString()}`;
+        }
+    }
+
+    function formatDateDisplay(dateStr) {
+        if (!dateStr || dateStr === '-') return '-';
+        try {
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                if (parts[0].length === 4) {
+                    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+            }
+        } catch(e) {}
+        return dateStr;
+    }
+
     window.onclick = function(event) {
-        let modal = document.getElementById('detailModal');
-        if (event.target == modal) closeModal();
+        let detailModal = document.getElementById('detailModal');
+        let apprModal = document.getElementById('apprModal');
+        let infoModal = document.getElementById('customInfoModal');
+        
+        if (event.target == detailModal) closeModal();
+        if (event.target == apprModal) closeApprModal();
+        if (event.target == infoModal) closeInfoModal();
     }
 </script>
 {% endblock %}

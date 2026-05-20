@@ -68,16 +68,16 @@
     }
 
     /* Colori Categorie - applicati alla riga intera */
-    .cat-blue td { border-bottom: 2px solid #818cf8 !important; }
-    .cat-blue td:first-child { color: #818cf8; border-left: 5px solid #818cf8 !important; }
-    .cat-orange td { border-bottom: 2px solid #fb923c !important; }
-    .cat-orange td:first-child { color: #fb923c; border-left: 5px solid #fb923c !important; }
-    .cat-purple td { border-bottom: 2px solid #a78bfa !important; }
-    .cat-purple td:first-child { color: #a78bfa; border-left: 5px solid #a78bfa !important; }
-    .cat-green td { border-bottom: 2px solid #4ade80 !important; }
-    .cat-green td:first-child { color: #4ade80; border-left: 5px solid #4ade80 !important; }
-    .cat-gray td { border-bottom: 2px solid #475569 !important; }
-    .cat-gray td:first-child { color: #94a3b8; border-left: 5px solid #475569 !important; }
+    .cat-blue td { background: linear-gradient(rgba(129, 140, 248, 0.08), rgba(129, 140, 248, 0.08)), #1e1b26 !important; border-bottom: 2px solid #818cf8 !important; }
+    .cat-blue td:first-child { color: #818cf8 !important; border-left: 5px solid #818cf8 !important; }
+    .cat-orange td { background: linear-gradient(rgba(251, 146, 60, 0.08), rgba(251, 146, 60, 0.08)), #1e1b26 !important; border-bottom: 2px solid #fb923c !important; }
+    .cat-orange td:first-child { color: #fb923c !important; border-left: 5px solid #fb923c !important; }
+    .cat-purple td { background: linear-gradient(rgba(167, 139, 250, 0.08), rgba(167, 139, 250, 0.08)), #1e1b26 !important; border-bottom: 2px solid #a78bfa !important; }
+    .cat-purple td:first-child { color: #a78bfa !important; border-left: 5px solid #a78bfa !important; }
+    .cat-green td { background: linear-gradient(rgba(74, 222, 128, 0.08), rgba(74, 222, 128, 0.08)), #1e1b26 !important; border-bottom: 2px solid #4ade80 !important; }
+    .cat-green td:first-child { color: #4ade80 !important; border-left: 5px solid #4ade80 !important; }
+    .cat-gray td { background: linear-gradient(rgba(71, 85, 105, 0.08), rgba(71, 85, 105, 0.08)), #1e1b26 !important; border-bottom: 2px solid #475569 !important; }
+    .cat-gray td:first-child { color: #94a3b8 !important; border-left: 5px solid #475569 !important; }
 
     /* Sfondi Sezione - tinta visibile sulle righe prodotto */
     .section-blue tr:not(.group-header) td { background: rgba(129, 140, 248, 0.12); }
@@ -116,6 +116,54 @@
 
     .placeholder-cell { color: var(--text-secondary); opacity: 0.4; font-style: italic; font-size: 0.85rem; }
 
+    /* Badge interattivo per il link del report di utilizzo */
+    .usage-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        background: rgba(56, 189, 248, 0.1);
+        color: #38bdf8;
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        border-radius: 4px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+    }
+    .usage-badge:hover {
+        background: rgba(56, 189, 248, 0.25);
+        color: #7dd3fc;
+        border-color: rgba(56, 189, 248, 0.5);
+        transform: translateY(-1px);
+    }
+
+    /* Badge interattivo per la giacenza per visualizzare lo storico scarichi */
+    .giacenza-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        background: rgba(74, 222, 128, 0.15);
+        color: #4ade80;
+        border: 1px solid rgba(74, 222, 128, 0.3);
+        border-radius: 4px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+    }
+    .giacenza-badge:hover {
+        background: rgba(74, 222, 128, 0.25);
+        color: #a7f3d0;
+        border-color: rgba(74, 222, 128, 0.5);
+        transform: translateY(-1px);
+    }
+    .giacenza-badge.exhausted {
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text-secondary);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .giacenza-badge.exhausted:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: white;
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
     /* Modal Styles */
     .modal {
         display: none; position: fixed; z-index: 2000;
@@ -128,8 +176,8 @@
         border-radius: 1rem; box-shadow: 0 25px 50px rgba(0,0,0,0.6);
     }
     .detail-table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
-    .detail-table th { background: rgba(255,255,255,0.03); color: var(--text-secondary); text-align: left; padding: 12px; border-bottom: 2px solid var(--border-color); }
-    .detail-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .detail-table th { background: rgba(255,255,255,0.03); color: var(--text-secondary); text-align: left; padding: 12px; border-bottom: 2px solid var(--border-color); white-space: nowrap; }
+    .detail-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; }
     .close-btn { float: right; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); }
 </style>
 
@@ -144,13 +192,13 @@
     <table id="magazzinoTable" class="display">
         <thead>
             <tr>
-                <th style="width: 28%;">Materiale</th>
+                <th style="width: 24%;">Materiale</th>
                 <th style="width: 6%;">Codice</th>
                 <th style="width: 10%;">Giacenza</th>
                 <th style="width: 12%;">Stato</th>
-                <th style="width: 12%;">Lotto in Uso</th>
+                <th style="width: 16%;">Lotto in Uso</th>
                 <th style="width: 10%;">Q.tà Lotto</th>
-                <th style="width: 10%;">Scadenza</th>
+                <th style="width: 14%;">Scadenza</th>
                 <th style="width: 8%;">Scorta Min.</th>
             </tr>
         </thead>
@@ -158,10 +206,10 @@
         {% for cat_name, items in grouped_inventory.items() %}
         {# Ogni categoria ha il suo TBODY per permettere il corretto funzionamento dello sticky push #}
             {% set color_class = 'cat-gray' %}
-            {% if 'sterile' in cat_name.lower() or 'vetro' in cat_name.lower() %}{% set color_class = 'cat-blue' %}
-            {% elif 'synthera' in cat_name.lower() or 'fbb' in cat_name.lower() %}{% set color_class = 'cat-orange' %}
-            {% elif 'colina' in cat_name.lower() or 'reagenti chimici' in cat_name.lower() %}{% set color_class = 'cat-purple' %}
-            {% elif 'dopa' in cat_name.lower() or 'finali' in cat_name.lower() %}{% set color_class = 'cat-green' %}
+            {% if 'consumabili' in cat_name.lower() or 'sterile' in cat_name.lower() or 'vetro' in cat_name.lower() %}{% set color_class = 'cat-blue' %}
+            {% elif 'reagenti' in cat_name.lower() or 'colina' in cat_name.lower() %}{% set color_class = 'cat-orange' %}
+            {% elif 'filtri' in cat_name.lower() %}{% set color_class = 'cat-purple' %}
+            {% elif 'kit' in cat_name.lower() or 'synthera' in cat_name.lower() or 'fbb' in cat_name.lower() or 'dopa' in cat_name.lower() or 'finali' in cat_name.lower() %}{% set color_class = 'cat-green' %}
             {% endif %}
         <tbody class="category-group section-{{ color_class | replace('cat-', '') }}">
             
@@ -175,7 +223,7 @@
                 {% set scorta_min = item['scorta_minima'] if item['scorta_minima'] is not none else 0 %}
                 {% set is_low_stock = giacenza < scorta_min %}
                 <tr onclick="openBatchDetails('{{ item['codice'] }}', '{{ item['nome_mp'] }}')">
-                    <td><strong>{{ item['nome_mp'] }}</strong></td>
+                    <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px;" title="{{ item['nome_mp'] }}"><strong>{{ item['nome_mp'] }}</strong></td>
                     <td><span class="badge">{{ item['codice'] }}</span></td>
                     <td>
                         <span class="{{ 'stock-critical-val' if is_low_stock else 'stock-ok' }}" style="font-weight: bold;">
@@ -187,9 +235,32 @@
                         <span class="low-stock-badge">⚠ SOTTO SCORTA</span>
                         {% endif %}
                     </td>
-                    <td class="placeholder-cell">Vedi dettaglio</td>
-                    <td class="placeholder-cell">-</td>
-                    <td class="placeholder-cell">-</td>
+                    <!-- Lotto in Uso -->
+                    <td>
+                        {% if item['lotto_in_uso'] %}
+                        <span class="badge" style="background: rgba(129, 140, 248, 0.1); color: #818cf8; white-space: nowrap; display: inline-block;">{{ item['lotto_in_uso'] }}</span>
+                        {% else %}
+                        <span class="placeholder-cell">-</span>
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Q.tà Lotto -->
+                    <td>
+                        {% if item['lotto_in_uso_giacenza'] is not none %}
+                        <strong style="color: var(--text-pale);">{{ item['lotto_in_uso_giacenza'] | float | round(2) }}</strong>
+                        {% else %}
+                        <span class="placeholder-cell">-</span>
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Scadenza Lotto -->
+                    <td>
+                        {% if item['lotto_in_uso_scadenza'] %}
+                        <small>{{ item['lotto_in_uso_scadenza'] | dateformat }}</small>
+                        {% else %}
+                        <span class="placeholder-cell">-</span>
+                        {% endif %}
+                    </td>
                     <td style="font-weight: 500;">{{ item['scorta_minima'] or '0' }}</td>
                 </tr>
             {% endfor %}
@@ -213,13 +284,35 @@
                         <th>Lotto fornitore</th>
                         <th>Q.tà Arrivata</th>
                         <th>Scadenza</th>
-                        <th>Prezzo</th>
                         <th>In Uso</th>
                         <th>Ultimo Utilizzo</th>
                         <th>Giacenza</th>
                     </tr>
                 </thead>
                 <tbody id="batchTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Report Utilizzo Lotto -->
+<div id="usageModal" class="modal" style="z-index: 3000;">
+    <div class="modal-content" style="max-width: 800px; margin: 10% auto;">
+        <span class="close-btn" onclick="closeUsageModal()">&times;</span>
+        <h3 style="color: var(--accent-color); margin-bottom: 0.5rem;">📊 Report Utilizzo Lotto</h3>
+        <p id="usageModalSubtitle" style="color: var(--text-secondary); margin-bottom: 1.5rem;"></p>
+        <div style="overflow-x: auto;">
+            <table class="detail-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Causale</th>
+                        <th>Lotto Prodotto</th>
+                        <th>Quantità Scaricata</th>
+                        <th>Operatore</th>
+                    </tr>
+                </thead>
+                <tbody id="usageTableBody"></tbody>
             </table>
         </div>
     </div>
@@ -248,7 +341,7 @@
         document.getElementById('modalTitle').innerText = "Storico Lotti: " + nome;
         document.getElementById('modalSubtitle').innerText = "Codice: " + codice;
         const tbody = document.getElementById('batchTableBody');
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">Caricamento...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Caricamento...</td></tr>';
         document.getElementById('batchModal').style.display = 'block';
 
         fetch(`/api/lotti_per_mp/${codice}`)
@@ -257,17 +350,72 @@
                 tbody.innerHTML = '';
                 data.lotti.forEach(lotto => {
                     const tr = document.createElement('tr');
+                    
+                    const inUsoBadge = lotto.in_uso 
+                        ? `<span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: rgba(74, 222, 128, 0.15); color: #4ade80; border-radius: 4px; font-weight: bold; border: 1px solid rgba(74, 222, 128, 0.3);">✔</span>`
+                        : `<span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: rgba(239, 68, 68, 0.15); color: #f87171; border-radius: 4px; font-weight: bold; border: 1px solid rgba(239, 68, 68, 0.3);">✖</span>`;
+                    
+                    const giacenzaVal = lotto.giacenza !== null ? parseFloat(lotto.giacenza).toFixed(2) : '0.00';
+                    const isExhausted = parseFloat(giacenzaVal) <= 0;
+                    
+                    const giacenzaHTML = `<span onclick="goToScarichi('${lotto.lotto_interno}')" class="giacenza-badge ${isExhausted ? 'exhausted' : ''}" title="Clicca per vedere tutti i movimenti di scarico di questo lotto">${giacenzaVal}</span>`;
+                    
+                    const ultimoUtilizzoHTML = lotto.ultimo_utilizzo
+                        ? `<span onclick="openUsageReport('${lotto.lotto_interno}')" class="usage-badge" title="Clicca per vedere il report di utilizzo">${formatDate(lotto.ultimo_utilizzo)} 📊</span>`
+                        : `<span class="placeholder-cell">Mai usato</span>`;
+                    
                     tr.innerHTML = `
                         <td>${formatDate(lotto.arrivo_magazzino) || '-'}</td>
-                        <td><span class="badge" style="background: rgba(129, 140, 248, 0.1); color: #818cf8;">${lotto.lotto_interno}</span></td>
+                        <td><span class="badge" style="background: rgba(129, 140, 248, 0.1); color: #818cf8; white-space: nowrap;">${lotto.lotto_interno}</span></td>
                         <td>${lotto.lotto_fornitore || '-'}</td>
                         <td style="font-weight:bold;">${lotto.qnt_arrivata || '0'}</td>
                         <td>${formatDate(lotto.data_scadenza) || '-'}</td>
-                        <td class="placeholder-cell"></td><td class="placeholder-cell"></td><td class="placeholder-cell"></td><td class="placeholder-cell"></td>
+                        <td style="text-align: center; vertical-align: middle;">${inUsoBadge}</td>
+                        <td>${ultimoUtilizzoHTML}</td>
+                        <td>${giacenzaHTML}</td>
                     `;
                     tbody.appendChild(tr);
                 });
             });
+    }
+
+    function openUsageReport(lottoInterno) {
+        document.getElementById('usageModalSubtitle').innerText = "Lotto Interno: " + lottoInterno;
+        const tbody = document.getElementById('usageTableBody');
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Caricamento...</td></tr>';
+        document.getElementById('usageModal').style.display = 'block';
+
+        fetch(`/api/scarichi_per_lotto/${lottoInterno}`)
+            .then(response => response.json())
+            .then(data => {
+                tbody.innerHTML = '';
+                if (!data.scarichi || data.scarichi.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-secondary);">Nessun utilizzo registrato.</td></tr>';
+                    return;
+                }
+                data.scarichi.forEach(scarico => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${formatDate(scarico.data) || '-'}</td>
+                        <td><span class="badge" style="background: rgba(167, 139, 250, 0.1); color: #a78bfa;">${scarico.causale || '-'}</span></td>
+                        <td>${scarico.lotto_prod ? `<span class="badge" style="background: rgba(74, 222, 128, 0.1); color: #4ade80;">${scarico.lotto_prod}</span>` : '<span class="placeholder-cell">-</span>'}</td>
+                        <td style="font-weight:bold; color: #f87171;">-${parseFloat(scarico.quantita || 0).toFixed(2)}</td>
+                        <td>${scarico.operatore || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(err => {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: #f87171;">Errore durante il caricamento: ${err}</td></tr>`;
+            });
+    }
+
+    function closeUsageModal() {
+        document.getElementById('usageModal').style.display = 'none';
+    }
+
+    function goToScarichi(lottoInterno) {
+        window.location.href = `/storico_scarichi?lotto=${encodeURIComponent(lottoInterno)}`;
     }
 
     function formatDate(isoDate) {
@@ -278,6 +426,13 @@
     }
 
     function closeBatchModal() { document.getElementById('batchModal').style.display = 'none'; }
-    window.onclick = function(event) { if (event.target == document.getElementById('batchModal')) closeBatchModal(); }
+    
+    window.onclick = function(event) {
+        if (event.target == document.getElementById('batchModal')) {
+            closeBatchModal();
+        } else if (event.target == document.getElementById('usageModal')) {
+            closeUsageModal();
+        }
+    }
 </script>
 {% endblock %}

@@ -180,7 +180,10 @@
     const displayCodice = document.getElementById('display_codice');
     const mpItems = document.querySelectorAll('.mp-item');
 
-    mpSearch.addEventListener('focus', () => mpResults.style.display = 'block');
+    mpSearch.addEventListener('focus', () => {
+        mpResults.style.display = 'block';
+        fornResults.style.display = 'none';
+    });
     mpSearch.addEventListener('input', function() {
         const filter = this.value.toLowerCase();
         mpItems.forEach(item => {
@@ -202,7 +205,10 @@
     const fornSearch = document.getElementById('fornitore_search');
     const fornResults = document.getElementById('fornitoriResults');
 
-    fornSearch.addEventListener('focus', () => fornResults.style.display = 'block');
+    fornSearch.addEventListener('focus', () => {
+        fornResults.style.display = 'block';
+        mpResults.style.display = 'none';
+    });
     fornSearch.addEventListener('input', function() {
         const filter = this.value.toLowerCase();
         const fornItems = document.querySelectorAll('.forn-item');
@@ -261,8 +267,10 @@
 
     // Chiudi liste se clicchi fuori
     document.addEventListener('click', function(e) {
-        if (!e.target.closest('.search-container')) {
+        if (!mpSearch.contains(e.target) && !mpResults.contains(e.target)) {
             mpResults.style.display = 'none';
+        }
+        if (!fornSearch.contains(e.target) && !fornResults.contains(e.target)) {
             fornResults.style.display = 'none';
         }
     });

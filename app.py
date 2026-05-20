@@ -243,8 +243,21 @@ def add_fornitore():
 @app.route('/magazzino')
 def magazzino():
     conn = get_db_connection()
-    # Query che aggrega i lotti per ogni materia prima
+    # Query che aggrega i lotti per ogni materia prima ed estrae il lotto in uso (il più vecchio attivo)
     inventory_rows = conn.execute('''
+        WITH OldestActiveLot AS (
+            SELECT 
+                codice_mp,
+                lotto_interno,
+                giacenza,
+                data_scadenza,
+                ROW_NUMBER() OVER (
+                    PARTITION BY codice_mp 
+                    ORDER BY data_arrivo ASC, lotto_interno ASC
+                ) as rn
+            FROM Lotti_Interni
+            WHERE giacenza IS NOT NULL AND CAST(giacenza AS FLOAT) > 0
+        )
         SELECT 
             M.codice, 
             M.nome_mp, 
@@ -253,10 +266,14 @@ def magazzino():
             M.categoria_magazzino,
             SUM(CASE WHEN L.giacenza IS NOT NULL THEN CAST(L.giacenza AS FLOAT) ELSE 0 END) as giacenza_totale,
             COUNT(CASE WHEN L.lotto_interno IS NOT NULL THEN 1 END) as num_lotti,
-            MIN(CASE WHEN L.data_scadenza != "" THEN L.data_scadenza END) as prossima_scadenza
+            MIN(CASE WHEN L.data_scadenza != "" THEN L.data_scadenza END) as prossima_scadenza,
+            O.lotto_interno as lotto_in_uso,
+            O.giacenza as lotto_in_uso_giacenza,
+            O.data_scadenza as lotto_in_uso_scadenza
         FROM Elenco_MP M
         LEFT JOIN Lotti_Interni L ON M.codice = L.codice_mp
-        GROUP BY M.codice, M.nome_mp, M.scorta_minima, M.ordine_magazzino, M.categoria_magazzino
+        LEFT JOIN OldestActiveLot O ON M.codice = O.codice_mp AND O.rn = 1
+        GROUP BY M.codice, M.nome_mp, M.scorta_minima, M.ordine_magazzino, M.categoria_magazzino, O.lotto_interno, O.giacenza, O.data_scadenza
         ORDER BY M.ordine_magazzino ASC, M.nome_mp ASC
     ''').fetchall()
     
@@ -279,18 +296,115 @@ def api_lotti_per_mp(codice):
     lotti_rows = conn.execute('''
         SELECT 
             arrivo_magazzino, 
+            data_arrivo,
             lotto_interno, 
             lotto_fornitore, 
             qnt_arrivata, 
-            data_scadenza
-        FROM Lotti_Interni 
+            data_scadenza,
+            giacenza,
+            (SELECT MAX(data) FROM Scarichi WHERE lotto_interno = L.lotto_interno) as ultimo_utilizzo
+        FROM Lotti_Interni L
         WHERE codice_mp = ? 
-        ORDER BY data_arrivo DESC
+        ORDER BY data_arrivo DESC, lotto_interno DESC
     ''', (codice,)).fetchall()
     
     lotti = [dict(row) for row in lotti_rows]
+    
+    # Trova il lotto in uso (quello attivo più vecchio con giacenza > 0)
+    oldest_active_lotto_interno = None
+    oldest_active_date = None
+    
+    for lot in lotti:
+        try:
+            giac = float(lot['giacenza']) if lot['giacenza'] is not None else 0.0
+        except ValueError:
+            giac = 0.0
+            
+        if giac > 0:
+            arr_date = lot['data_arrivo'] or ''
+            lot_id = lot['lotto_interno'] or ''
+            if oldest_active_date is None or arr_date < oldest_active_date or (arr_date == oldest_active_date and lot_id < oldest_active_lotto_interno):
+                oldest_active_date = arr_date
+                oldest_active_lotto_interno = lot_id
+                
+    # Aggiungi il flag in_uso a ciascun lotto
+    for lot in lotti:
+        lot['in_uso'] = (lot['lotto_interno'] == oldest_active_lotto_interno) if oldest_active_lotto_interno else False
+        
     conn.close()
     return {'lotti': lotti}
+
+@app.route('/api/scarichi_per_lotto/<lotto_interno>')
+def api_scarichi_per_lotto(lotto_interno):
+    conn = get_db_connection()
+    try:
+        rows = conn.execute('''
+            SELECT data, causale, lotto_prod, quantita, operatore
+            FROM Scarichi
+            WHERE lotto_interno = ?
+            ORDER BY data DESC, id DESC
+        ''', (lotto_interno,)).fetchall()
+        
+        scarichi = [dict(row) for row in rows]
+        return {'success': True, 'scarichi': scarichi}
+    except Exception as e:
+        return {'success': False, 'message': str(e)}, 500
+    finally:
+        conn.close()
+
+@app.route('/api/approva_lotto', methods=['POST'])
+def api_approva_lotto():
+    data_json = request.get_json()
+    if not data_json:
+        return {'success': False, 'message': 'Dati mancanti'}, 400
+    
+    lotto_interno = data_json.get('lotto_interno')
+    data_approvazione = data_json.get('data_approvazione')
+    
+    if not lotto_interno or not data_approvazione:
+        return {'success': False, 'message': 'Campi obbligatori mancanti'}, 400
+    
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            UPDATE Lotti_Interni 
+            SET data_approvazione = ?, appr = 'OK' 
+            WHERE lotto_interno = ?
+        ''', (data_approvazione, lotto_interno))
+        conn.commit()
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'message': str(e)}, 500
+    finally:
+        conn.close()
+
+@app.route('/api/cc_info/<lotto_interno>')
+def api_cc_info(lotto_interno):
+    conn = get_db_connection()
+    try:
+        row = conn.execute('''
+            SELECT data, operatore 
+            FROM Scarichi 
+            WHERE lotto_interno = ? AND causale = 'Controcampione' 
+            ORDER BY data DESC LIMIT 1
+        ''', (lotto_interno,)).fetchone()
+        
+        if row:
+            return {
+                'success': True,
+                'found': True,
+                'data': row['data'],
+                'operatore': row['operatore']
+            }
+        else:
+            return {
+                'success': True,
+                'found': False
+            }
+    except Exception as e:
+        return {'success': False, 'message': str(e)}, 500
+    finally:
+        conn.close()
 
 @app.route('/scarico_manuale', methods=['GET', 'POST'])
 def scarico_manuale():
@@ -440,6 +554,7 @@ def storico_scarichi():
                     'causale': r['causale'],
                     'tipologia': 'Picking FDG',
                     'materiale_nome': f"Produzione {r['lotto_prod']}",
+                    'dettagli': []
                 }
             fdg_groups[key]['dettagli'].append(r)
             # Rileva se si tratta di un picking TRASIS o FBB o FET o DOTA o PYL o FCH o FMC o FMC_KIT_ACC controllando la presenza di un componente specifico

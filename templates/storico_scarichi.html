@@ -273,6 +273,126 @@
         display: flex;
         justify-content: space-between;
     }
+
+    /* Premium Filter Bar */
+    .filter-panel {
+        background: rgba(17, 23, 38, 0.45);
+        border: 1px solid var(--border-color);
+        border-radius: 1rem;
+        padding: 1.2rem;
+        margin-bottom: 2rem;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1.2rem;
+        align-items: flex-end;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .filter-panel::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--accent-color), var(--primary-color), transparent);
+        opacity: 0.7;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-group label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        letter-spacing: 0.05em;
+        margin-bottom: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .filter-group label span {
+        color: var(--accent-color);
+    }
+
+    .filter-select, .filter-input {
+        background: rgba(8, 11, 17, 0.5);
+        border: 1px solid var(--border-color);
+        border-radius: 0.6rem;
+        padding: 0.6rem 0.9rem;
+        color: white;
+        font-size: 0.85rem;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        width: 100%;
+        height: 38px;
+    }
+
+    .filter-select:focus, .filter-input:focus {
+        border-color: var(--accent-color);
+        background: rgba(8, 11, 17, 0.8);
+        box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+        outline: none;
+    }
+
+    .date-range-container {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .date-separator {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+    }
+
+    .btn-clear {
+        background: rgba(244, 63, 94, 0.1);
+        color: var(--danger);
+        border: 1px solid rgba(244, 63, 94, 0.25);
+        padding: 0 1.2rem;
+        border-radius: 0.6rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        height: 38px;
+        width: 100%;
+    }
+
+    .btn-clear:hover {
+        background: rgba(244, 63, 94, 0.2);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(244, 63, 94, 0.15);
+    }
+
+    .no-results {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.8rem;
+        padding: 3rem;
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        display: none;
+        animation: filterFadeIn 0.3s ease-out;
+    }
+
+    @keyframes filterFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 </style>
 
 <div class="history-container">
@@ -288,8 +408,56 @@
         </a>
     </div>
 
+    <!-- Beautiful Filter Panel -->
+    <div class="filter-panel">
+        <div class="filter-group">
+            <label><span>🔍</span> Ricerca Rapida</label>
+            <input type="text" id="search-text" class="filter-input" placeholder="Cerca lotto, materiale...">
+        </div>
+        <div class="filter-group">
+            <label><span>⚙️</span> Tipologia</label>
+            <select id="filter-tipologia" class="filter-select">
+                <option value="">Tutte</option>
+                <!-- populated dynamically -->
+            </select>
+        </div>
+        <div class="filter-group">
+            <label><span>👤</span> Operatore</label>
+            <select id="filter-operatore" class="filter-select">
+                <option value="">Tutti</option>
+                <!-- populated dynamically -->
+            </select>
+        </div>
+        <div class="filter-group" style="grid-column: span 2;">
+            <label><span>📅</span> Intervallo Date</label>
+            <div class="date-range-container">
+                <input type="date" id="filter-date-from" class="filter-input">
+                <span class="date-separator">al</span>
+                <input type="date" id="filter-date-to" class="filter-input">
+            </div>
+        </div>
+        <div class="filter-group" style="min-width: 100px;">
+            <button id="btn-clear-filters" class="btn-clear">
+                <span>🔄</span> Reset
+            </button>
+        </div>
+    </div>
+
+    <!-- No results placeholder -->
+    <div id="no-results-placeholder" class="no-results">
+        <span style="font-size: 2.5rem; display: block; margin-bottom: 1rem;">📭</span>
+        Nessuno scarico corrisponde ai filtri selezionati.
+    </div>
+
     {% for group in scarichi %}
-    <div class="history-card" id="{{ group.id }}" onclick="toggleDetails(this)">
+    <div class="history-card" id="{{ group.id }}" onclick="toggleDetails(this)"
+         data-tipologia="{{ group.tipologia }}"
+         data-operatore="{{ group.operatore }}"
+         data-data="{{ group.data }}"
+         data-materiale="{{ group.materiale_nome | lower }}"
+         data-causale="{{ group.causale | lower if group.causale else '' }}"
+         data-lottoprod="{{ group.lotto_prod | lower if group.lotto_prod else '' }}"
+         data-lotti="{{ group.dettagli | map(attribute='lotto_interno') | join(',') | lower }}">
         <div class="card-header">
             <div class="card-date">{{ group.data | dateformat }}</div>
             <div class="card-type">
@@ -443,6 +611,148 @@
 </div>
 
 <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const cards = document.querySelectorAll('.history-card');
+        const filterTipologia = document.getElementById('filter-tipologia');
+        const filterOperatore = document.getElementById('filter-operatore');
+        const searchText = document.getElementById('search-text');
+        const dateFrom = document.getElementById('filter-date-from');
+        const dateTo = document.getElementById('filter-date-to');
+        const btnClear = document.getElementById('btn-clear-filters');
+        const noResults = document.getElementById('no-results-placeholder');
+
+        // Estrazione valori unici per i filtri dropdown
+        const tipologieSet = new Set();
+        const operatoriSet = new Set();
+
+        cards.forEach(card => {
+            const tipologia = card.getAttribute('data-tipologia');
+            const operatore = card.getAttribute('data-operatore');
+            if (tipologia) tipologieSet.add(tipologia);
+            if (operatore) operatoriSet.add(operatore);
+        });
+
+        // Popola dropdown Tipologia
+        Array.from(tipologieSet).sort().forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t;
+            filterTipologia.appendChild(opt);
+        });
+
+        // Popola dropdown Operatore
+        Array.from(operatoriSet).sort().forEach(o => {
+            const opt = document.createElement('option');
+            opt.value = o;
+            opt.textContent = o;
+            filterOperatore.appendChild(opt);
+        });
+
+        // Variabile per il filtro esatto per lotto (da URL param ?lotto=)
+        let exactLottoFilter = null;
+
+        // Funzione per applicare i filtri
+        function applyFilters() {
+            const searchVal = searchText.value.toLowerCase().trim();
+            const tipologiaVal = filterTipologia.value;
+            const operatoreVal = filterOperatore.value;
+            const fromVal = dateFrom.value; // YYYY-MM-DD
+            const toVal = dateTo.value;     // YYYY-MM-DD
+
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                const cardTipologia = card.getAttribute('data-tipologia');
+                const cardOperatore = card.getAttribute('data-operatore');
+                const cardDate = card.getAttribute('data-data');
+                const cardLotti = (card.getAttribute('data-lotti') || '').split(',').map(s => s.trim());
+                
+                // Cerca nel testo intero della card per massima flessibilità (lotti, materiali, etc.)
+                const cardTextContent = card.innerText.toLowerCase();
+
+                // Filtro esatto per lotto interno (da URL param)
+                const matchesLotto = !exactLottoFilter || cardLotti.includes(exactLottoFilter.toLowerCase());
+                
+                const matchesSearch = !searchVal || cardTextContent.includes(searchVal);
+                const matchesTipologia = !tipologiaVal || cardTipologia === tipologiaVal;
+                const matchesOperatore = !operatoreVal || cardOperatore === operatoreVal;
+                
+                let matchesDate = true;
+                if (cardDate) {
+                    if (fromVal && cardDate < fromVal) matchesDate = false;
+                    if (toVal && cardDate > toVal) matchesDate = false;
+                } else if (fromVal || toVal) {
+                    matchesDate = false;
+                }
+
+                if (matchesLotto && matchesSearch && matchesTipologia && matchesOperatore && matchesDate) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                    card.classList.remove('active');
+                }
+            });
+
+            // Gestione visibilità placeholder risultati vuoti
+            if (visibleCount === 0) {
+                noResults.style.display = 'block';
+            } else {
+                noResults.style.display = 'none';
+            }
+        }
+
+        // Listener per il filtraggio in tempo reale
+        searchText.addEventListener('input', applyFilters);
+        filterTipologia.addEventListener('change', applyFilters);
+        filterOperatore.addEventListener('change', applyFilters);
+        dateFrom.addEventListener('change', applyFilters);
+        dateTo.addEventListener('change', applyFilters);
+
+        // Reset dei filtri (incluso il filtro esatto per lotto da URL)
+        btnClear.addEventListener('click', () => {
+            exactLottoFilter = null;
+            searchText.value = '';
+            searchText.disabled = false;
+            searchText.title = '';
+            filterTipologia.value = '';
+            filterOperatore.value = '';
+            dateFrom.value = '';
+            dateTo.value = '';
+            applyFilters();
+        });
+
+        // Gestione del filtro preimpostato da URL query string
+        const urlParams = new URLSearchParams(window.location.search);
+        const lottoParam = urlParams.get('lotto');   // filtro esatto per lotto_interno
+        const searchParam = urlParams.get('search'); // ricerca testuale generica
+
+        if (lottoParam) {
+            // Filtro esatto per lotto: usa data-lotti, NON la ricerca testuale
+            exactLottoFilter = lottoParam;
+            // Mostra il codice lotto nella barra di ricerca come riferimento visivo
+            searchText.value = lottoParam;
+            searchText.disabled = true;
+            searchText.title = 'Filtro esatto attivo per lotto: ' + lottoParam + '. Clicca Reset per rimuoverlo.';
+            applyFilters();
+
+            // Se c'è solo una card visibile, espandila automaticamente
+            const visibleCards = Array.from(cards).filter(card => card.style.display !== 'none');
+            if (visibleCards.length === 1) {
+                toggleDetails(visibleCards[0]);
+            }
+        } else if (searchParam) {
+            searchText.value = searchParam;
+            applyFilters();
+
+            // Se c'è solo una card visibile, espandila automaticamente
+            const visibleCards = Array.from(cards).filter(card => card.style.display !== 'none');
+            if (visibleCards.length === 1) {
+                toggleDetails(visibleCards[0]);
+            }
+        }
+    });
+
     function toggleDetails(card) {
         // Chiudi tutti gli altri
         document.querySelectorAll('.history-card').forEach(c => {
