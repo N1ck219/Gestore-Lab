@@ -1,10 +1,10 @@
-# 📝 Roadmap Sviluppo Futuro: Sistema di Backup & Ripristino 🧪
+# 📝 Roadmap Sviluppo Futuro: Sistema di Backup & Miglioramenti Pratici 🧪
 
-Questa TODO list traccia i passaggi pianificati per implementare un sistema di sicurezza dei dati a doppia barriera (locale/cloud), un'interfaccia di ripristino self-service e una serie di funzionalità avanzate per la tracciabilità professionale in conformità con gli standard di laboratorio (GMP/GLP) in **Gestore-Lab**.
+Questa TODO list traccia i passaggi pianificati per migliorare **Gestore-Lab** in modo incrementale. L'obiettivo è dotare l'applicazione di un sistema di sicurezza solido, di interfacce semplici e di un codice pulito e facile da mantenere nel tempo, mantenendo le funzionalità enterprise complesse come idee facoltative ("in forse") alla fine.
 
 ---
 
-## 🛠️ Fase 1: Creazione Automatica dei Backup (Sicurezza & Sincronizzazione)
+## 🛠️ Fase 1: Creazione Automatica dei Backup (Sicurezza Locale)
 
 L'obiettivo è garantire la creazione automatica di copie storiche del database ad ogni avvio dell'applicazione.
 
@@ -14,7 +14,7 @@ L'obiettivo è garantire la creazione automatica di copie storiche del database 
     *   [ ] Copiare il file attivo `database.db` rinominandolo in `database_backup_YYYYMMDD_HHMMSS.db`.
 *   [ ] **Algoritmo di Rotazione Automatico (Risparmio Spazio)**
     *   [ ] Scrivere uno script in Python (avviato in background o all'interno di `app.py`) che controlla la cartella dei backup.
-    *   [ ] Mantenere in automatico solo le ultime **30 copie storiche** più recenti ed eliminare quelle più vecchie.
+    *   [ ] Mantenere in automatico solo le ultime **30 copie storiche** più recenti ed eliminare quelle più vecchie per non occupare spazio inutile.
 *   [ ] **Sincronizzazione Cloud Facoltativa**
     *   [ ] Consentire la configurazione di un percorso di backup esterno (es. cartella di sincronizzazione attiva di OneDrive, Dropbox o Google Drive) per il backup automatico off-site.
 
@@ -34,21 +34,29 @@ L'obiettivo è consentire agli operatori del laboratorio di gestire ed effettuar
     *   [ ] **Backup Preventivo Immediato:** All'istante prima di sovrascrivere il database con il vecchio backup, creare una copia speciale `database_emergenza_pre_ripristino.db`.
     *   [ ] **Interfaccia di Doppia Conferma (Modal):** Schermata di blocco che richiede all'utente di confermare l'azione digitando manualmente la parola *"RIPRISTINA"* per sbloccare il pulsante d'invio.
 *   [ ] **Interfaccia Grafica (Settings UI)**
-    *   [ ] Creare the file `templates/settings.html` integrato con il tema scuro premium.
+    *   [ ] Creare il file `templates/settings.html` integrato con il tema scuro premium.
     *   [ ] Visualizzare la tabella con i backup disponibili (Data, Ora, Dimensione in KB, pulsante "Ripristina" in rosso e pulsante "Scarica" in azzurro).
     *   [ ] Aggiungere un pulsante per forzare la creazione manuale istantanea di un backup.
 
 ---
 
-## 🚨 Fase 3: Salvagente di Emergenza (Offline)
+## 🚨 Fase 3: Salvagente di Emergenza & Robustezza (Manutenzione)
+
+L'obiettivo è proteggere il sistema da crash bloccanti ed impostare solide basi per facilitare la manutenzione e la portabilità del codice.
 
 *   [ ] **Script Batch di Ripristino Esterno**
     *   [ ] Creare un file `Ripristina_Database.bat` nella cartella principale del progetto.
     *   [ ] In caso di corruzione grave in cui il server Flask non si avvia, lo script deve consentire all'utente di selezionare e ripristinare l'ultimo backup funzionante direttamente dal terminale Windows.
+*   [ ] **Separazione delle Configurazioni (File `.env`)**
+    *   [ ] Spostare tutte le configurazioni cablate (porte, percorsi database, cartelle PDF, chiavi segrete) in un file `.env` esterno per massimizzare la portabilità tra computer.
+*   [ ] **Registro Log Centralizzato (`app.log`)**
+    *   [ ] Implementare il modulo `logging` nativo di Python per registrare automaticamente errori, avvii e azioni critiche (come i ripristini dei backup) in un file di log locale (`database/app.log`).
+*   [ ] **Scomposizione Modulare di `app.py`**
+    *   [ ] Suddividere il file monolitico `app.py` (>1000 righe) in moduli riutilizzabili e più corti (es. `db_utils.py` per le connessioni, `pdf_utils.py` per la logica di stampa, e Blueprint di Flask per dividere le rotte).
 
 ---
 
-## 🚀 Fase 4: Funzionalità Avanzate & Tracciabilità Professionale (GMP/GLP Ready)
+## 🚀 Fase 4: Funzionalità Avanzate & Tracciabilità (GMP/GLP Ready)
 
 L'obiettivo è elevare il livello di qualità, tracciabilità e conformità regolatoria del software per contesti industriali/clinici.
 
@@ -89,6 +97,10 @@ L'obiettivo è rendere l'utilizzo dell'applicazione immediato, riducendo lo sfor
 *   [ ] **Guida alle Sigle di Laboratorio (Tooltips Esplicativi)**
     *   [ ] Inserire micro-icone informative `🛈` accanto a sigle o campi complessi nei form (`CC`, `CA`, `Appr`, `Pz x Cf`).
     *   [ ] Mostrare spiegazioni chiare al passaggio del mouse (*hover*) per facilitare l'inserimento dei dati ed eliminare dubbi operativi per i nuovi utenti.
+*   [ ] **Modalità ad Alto Contrasto (Light/Dark Switch)**
+    *   [ ] Aggiungere un interruttore per alternare il tema scuro premium con un tema chiaro ad alta visibilità, facilitando la lettura del magazzino sotto cappe o in stanze molto illuminate.
+*   [ ] **Micro-animazioni per Feedback Visivo**
+    *   [ ] Inserire transizioni CSS fluide per hover e focus su bottoni, righe delle tabelle e input, dando una sensazione di reattività immediata.
 
 ---
 
@@ -96,6 +108,10 @@ L'obiettivo è rendere l'utilizzo dell'applicazione immediato, riducendo lo sfor
 
 L'obiettivo è tracciare idee enterprise ad alto valore aggiunto, utili qualora l'applicazione debba crescere in futuro verso un contesto commerciale, multi-utente o rigidamente conforme alle normative farmaceutiche.
 
+*   [ ] **Validazione Rigida dei Dati all'Ingresso**
+    *   [ ] Integrare controlli formali sui moduli (es. WTForms) per verificare che le quantità, date e nomi inseriti siano conformi e puliti prima di salvare nel database SQLite, evitando dati incongruenti.
+*   [ ] **Introduzione Graduale di un ORM (SQLAlchemy)**
+    *   [ ] Transizione da query SQL dirette espresse in stringhe di testo a un ORM come SQLAlchemy per gestire in modo sicuro e pulito le relazioni tra prodotti, lotti e prelievi.
 *   [ ] **Genealogia del Lotto ("Padre-Figlio" Traceability)**
     *   [ ] Collegare i lotti delle materie prime utilizzate (padri) al lotto di prodotto finito generato dalla sintesi (figlio) per tracciare a ritroso ogni ingrediente partendo dalla dose somministrata al paziente.
 *   [ ] **Controllo Accessi & Segregazione dei Ruoli (FDA 21 CFR Part 11)**
