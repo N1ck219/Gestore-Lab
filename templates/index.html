@@ -8,8 +8,8 @@
     <div
         style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; width: 100%; max-width: 900px;">
         
-        <!-- Sezione Magazzino (Nuova) -->
-        <a href="{{ url_for('magazzino') }}" class="main-card" style="grid-column: 1 / -1; border-color: var(--accent-color); background: linear-gradient(145deg, var(--card-bg) 0%, rgba(223, 19, 126, 0.05) 100%);">
+        <!-- Sezione Magazzino -->
+        <a href="{{ url_for('magazzino') }}" class="main-card card-magazzino">
             <div class="card-icon">📊</div>
             <h3>Stato Magazzino</h3>
             <p>Monitora le giacenze totali e i lotti in uso in tempo reale</p>
@@ -29,27 +29,27 @@
         </a>
 
         <!-- Sezione Lotti -->
-        <a href="{{ url_for('add_lotto') }}" class="main-card" style="border-color: #818cf8;">
-            <div class="card-icon" style="filter: drop-shadow(0 0 10px rgba(129, 140, 248, 0.3));">📦</div>
+        <a href="{{ url_for('add_lotto') }}" class="main-card card-lotti">
+            <div class="card-icon">📦</div>
             <h3>Nuovo Lotto</h3>
             <p>Registra un nuovo lotto in arrivo</p>
         </a>
 
-        <a href="{{ url_for('lotti_list') }}" class="main-card" style="border-color: #818cf8;">
-            <div class="card-icon" style="filter: drop-shadow(0 0 10px rgba(129, 140, 248, 0.3));">🔍</div>
+        <a href="{{ url_for('lotti_list') }}" class="main-card card-lotti">
+            <div class="card-icon">🔍</div>
             <h3>Registro Lotti</h3>
             <p>Visualizza e cerca tra i lotti registrati</p>
         </a>
 
         <!-- Sezione Scarico -->
-        <a href="{{ url_for('scarico_manuale') }}" class="main-card" style="border-color: #fb923c; background: linear-gradient(145deg, var(--card-bg) 0%, rgba(251, 146, 60, 0.05) 100%);">
-            <div class="card-icon" style="filter: drop-shadow(0 0 10px rgba(251, 146, 60, 0.3));">📉</div>
+        <a href="{{ url_for('scarico_manuale') }}" class="main-card card-scarichi">
+            <div class="card-icon">📉</div>
             <h3>Registra Scarico</h3>
             <p>Esegui uno scarico manuale o carica un report automatico</p>
         </a>
 
-        <a href="{{ url_for('storico_scarichi') }}" class="main-card" style="border-color: #fb923c;">
-            <div class="card-icon" style="filter: drop-shadow(0 0 10px rgba(251, 146, 60, 0.3));">📜</div>
+        <a href="{{ url_for('storico_scarichi') }}" class="main-card card-scarichi">
+            <div class="card-icon">📜</div>
             <h3>Storico Scarichi</h3>
             <p>Consulta il registro di tutti i movimenti in uscita</p>
         </a>
