@@ -35,6 +35,21 @@
     .status-ok { background-color: var(--success); color: white; }
     .status-none { background-color: #334155; color: #64748b; }
 
+    @keyframes pulseWarning {
+        0% {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
+        }
+        70% {
+            box-shadow: 0 0 0 8px rgba(245, 158, 11, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+        }
+    }
+    .pulse-warning {
+        animation: pulseWarning 2.0s infinite;
+    }
+
     .modal {
         display: none;
         position: fixed;
@@ -86,12 +101,15 @@
             <tr>
                 <th>Lotto Interno</th>
                 <th>Materia Prima</th>
-                <th>Arrivo</th>
+                <th>Data Arrivo</th>
                 <th>Scadenza</th>
                 <th>Giacenza</th>
-                <th>Appr.</th>
-                <th>Etich.</th>
+                <th>Etichetta Bianca</th>
+                <th>QC</th>
+                <th>APPR.</th>
+                <th>Etichetta Verde</th>
                 <th>CC</th>
+                <th>Lista Distribuzione</th>
             </tr>
         </thead>
         <tbody>
@@ -102,9 +120,34 @@
                 <td><small>{{ lotto['data_arrivo'] | dateformat }}</small></td>
                 <td><small>{{ lotto['data_scadenza'] | dateformat }}</small></td>
                 <td><strong style="color: var(--accent-color)">{{ lotto['giacenza'] or '-' }}</strong></td>
+                <td onclick="handleEtichettaBiancaClick(event, {{ lotto | tojson | forceescape }})">
+                    {% if lotto['has_bianco'] and lotto['has_bianco'] > 0 %}
+                        <span class="status-badge status-ok-white" style="background: rgba(255, 255, 255, 0.85); color: #0f172a; border: 1px solid #ffffff; font-weight: bold; box-shadow: 0 2px 4px rgba(255,255,255,0.1);">OK</span>
+                    {% else %}
+                        <span class="status-badge status-none">-</span>
+                    {% endif %}
+                </td>
+                <td onclick="handleQcClick(event, {{ lotto | tojson | forceescape }})" oncontextmenu="handleQcRightClick(event, {{ lotto | tojson | forceescape }})">
+                    {% if lotto['data_consegna_qc'] and lotto['data_consegna_qc'] != '-' %}
+                        <span class="status-badge qc-green" style="background-color: var(--success); color: white;">QC</span>
+                    {% elif lotto['qc_attesa'] == 'SI' %}
+                        <span class="status-badge qc-yellow pulse-warning" style="background-color: var(--warning); color: white;">QC</span>
+                    {% else %}
+                        <span class="status-badge qc-grey" style="background-color: #475569; color: #cbd5e1;">QC</span>
+                    {% endif %}
+                </td>
                 <td onclick="handleApprClick(event, {{ lotto | tojson | forceescape }})">{% if lotto['appr']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
-                <td>{% if lotto['etich']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
+                <td onclick="handleEtichettaVerdeClick(event, {{ lotto | tojson | forceescape }})">
+                    {% if (lotto['has_verde'] and lotto['has_verde'] > 0) or lotto['etich']|lower in ['ok', 'si', 'sì'] %}
+                        <span class="status-badge status-ok">OK</span>
+                    {% else %}
+                        <span class="status-badge status-none">-</span>
+                    {% endif %}
+                </td>
                 <td onclick="handleCcClick(event, {{ lotto | tojson | forceescape }})">{% if lotto['cc']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
+                <td onclick="handlePdfClick(event, '{{ lotto['lotto_interno'] }}')">
+                    <span class="status-badge" style="background-color: var(--primary-color); color: white; width: auto; padding: 0 10px;">Lista Distribuzione</span>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
@@ -195,6 +238,55 @@
     </div>
 </div>
 
+<!-- Modal Info Etichette -->
+<div id="labelInfoModal" class="modal">
+    <div class="modal-content" style="max-width: 500px; padding: 2rem; border-radius: 1.25rem;">
+        <span class="close" onclick="closeLabelInfoModal()">&times;</span>
+        <h3 style="color: var(--accent-color); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; font-size: 1.4rem;">
+            <span style="filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));">🏷️</span> Dettagli Generazione Etichette
+        </h3>
+        
+        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">LOTTO INTERNO</div>
+            <div id="info-lotto-valore" style="font-size: 1.2rem; font-weight: bold; color: white; letter-spacing: 0.5px;">-</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+            <!-- Etichetta Bianca -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.75rem; transition: transform 0.2s;" onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='none'">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 8px #ffffff;"></div>
+                    <div>
+                        <div style="font-weight: 600; color: white; font-size: 0.9rem;">Etichetta Bianca</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Standard arrivo materia prima</div>
+                    </div>
+                </div>
+                <div id="ts-bianca" style="font-size: 0.85rem; color: var(--text-pale); font-family: monospace; font-weight: 500;">-</div>
+            </div>
+
+            <!-- Etichetta Verde -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(16, 185, 129, 0.03); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 0.75rem; transition: transform 0.2s;" onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='none'">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success);"></div>
+                    <div>
+                        <div style="font-weight: 600; color: white; font-size: 0.9rem;">Etichetta Verde</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Approvato & Controllo Qualità</div>
+                    </div>
+                </div>
+                <div id="ts-verde" style="font-size: 0.85rem; color: var(--success); font-family: monospace; font-weight: bold;">-</div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <a id="btn-storico-filtrato" href="#" class="btn btn-primary" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; text-decoration: none; width: 100%; font-weight: 600; padding: 0.75rem;">
+                🔍 Vedi nello Storico
+            </a>
+            <button type="button" class="btn" style="background: rgba(255,255,255,0.05); color: white; width: 100%;" onclick="closeLabelInfoModal()">Chiudi</button>
+        </div>
+    </div>
+</div>
+
+
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
@@ -284,8 +376,111 @@
         document.getElementById('customInfoModal').style.display = "block";
     }
 
+    let shouldReloadOnClose = false;
     function closeInfoModal() {
         document.getElementById('customInfoModal').style.display = "none";
+        if (shouldReloadOnClose) {
+            window.location.reload();
+        }
+    }
+
+    // --- LOGICA GENERAZIONE PDF LISTA DISTRIBUZIONE ---
+    function handlePdfClick(event, lottoInterno) {
+        event.stopPropagation(); // Evita apertura dettagli generali del lotto
+        
+        fetch(`/api/genera_pdf_distribuzione/${encodeURIComponent(lottoInterno)}`, {
+            method: 'POST'
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showCustomAlert("Lista Distribuzione PDF", `Il PDF del lotto <strong>${lottoInterno}</strong> è stato generato e salvato con successo!<br><br>📁 <strong>Cartella:</strong> <code>lista_distribuzione</code><br>📄 <strong>File:</strong> <code>${data.filename}</code>`);
+            } else {
+                showCustomAlert("Errore PDF", "Errore durante la generazione del PDF: " + data.message);
+            }
+        })
+        .catch(err => {
+            console.error("Errore invio richiesta PDF:", err);
+            showCustomAlert("Errore PDF", "Errore di connessione al server.");
+        });
+    }
+
+    // --- LOGICA GESTIONE STATO QC ---
+    function handleQcClick(event, lotto) {
+        event.stopPropagation(); // Evita apertura dettagli generali del lotto
+        
+        const hasDate = lotto.data_consegna_qc && lotto.data_consegna_qc !== '-';
+        const inQueue = lotto.qc_attesa === 'SI';
+        
+        if (hasDate) {
+            // Stato Verde: mostra la data di consegna
+            const formattedDate = formatDateDisplay(lotto.data_consegna_qc);
+            showCustomAlert("Consegna QC Registrata", `Richiesta d'analisi per il lotto <strong>${lotto.lotto_interno}</strong> consegnata al QC in data <strong>${formattedDate}</strong>.`);
+        } else if (inQueue) {
+            // Stato Giallo: stampa la richiesta d'analisi combinata
+            showCustomAlert("Generazione Richiesta d'Analisi", `Generazione del PDF combinato per tutti i lotti in lista d'attesa e registrazione della consegna per oggi...<br><br>Attendere prego...`);
+            
+            setTimeout(() => {
+                fetch('/api/stampa_richiesta_analisi', {
+                    method: 'POST'
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        shouldReloadOnClose = true;
+                        showCustomAlert("Stampa Richiesta d'Analisi", `Il PDF combinato delle richieste è stato generato con successo!<br><br>📁 <strong>Cartella:</strong> <code>richiesta_analisi</code><br>📄 <strong>File:</strong> <code>${data.filename}</code><br><br>Tutti i lotti interessati sono stati aggiornati allo stato <strong>QC Consegnato (Verde)</strong>.`);
+                    } else {
+                        showCustomAlert("Errore di Stampa", "Errore durante la generazione della richiesta: " + data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error("Errore stampa richiesta d'analisi:", err);
+                    showCustomAlert("Errore di Stampa", "Errore di connessione al server.");
+                });
+            }, 1000);
+        } else {
+            // Stato Grigio: aggiungi alla lista d'attesa (diventa Giallo)
+            fetch(`/api/aggiungi_attesa_qc/${encodeURIComponent(lotto.lotto_interno)}`, {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    showCustomAlert("Errore", "Errore durante l'aggiunta alla lista di attesa: " + data.message);
+                }
+            })
+            .catch(err => {
+                console.error("Errore aggiunta attesa QC:", err);
+                showCustomAlert("Errore", "Errore di connessione al server.");
+            });
+        }
+    }
+
+    // --- LOGICA GESTIONE RIGHT CLICK STATO QC ---
+    function handleQcRightClick(event, lotto) {
+        const inQueue = lotto.qc_attesa === 'SI';
+        if (inQueue) {
+            event.preventDefault(); // Impedisce il menu contestuale classico di Chrome
+            event.stopPropagation(); // Evita l'apertura dei dettagli del lotto
+            
+            fetch(`/api/rimuovi_attesa_qc/${encodeURIComponent(lotto.lotto_interno)}`, {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    showCustomAlert("Errore", "Errore durante la rimozione dalla lista di attesa: " + data.message);
+                }
+            })
+            .catch(err => {
+                console.error("Errore rimozione attesa QC:", err);
+                showCustomAlert("Errore", "Errore di connessione al server.");
+            });
+        }
     }
 
     // --- HANDLER CLICK SPECIFICI COLONNA APPR / CC ---
@@ -335,6 +530,68 @@
         }
     }
 
+    // --- HANDLER CLICK ETICHETTA BIANCA ---
+    function handleEtichettaBiancaClick(event, lotto) {
+        event.stopPropagation(); // Evita l'apertura dei dettagli generali del lotto
+        
+        const isBiancaOk = lotto.has_bianco && lotto.has_bianco > 0;
+        
+        if (!isBiancaOk) {
+            // Redirige alla pagina per la generazione delle etichette con il lotto già selezionato
+            window.location.href = `/nuova_etichetta?lotto=${encodeURIComponent(lotto.lotto_interno)}`;
+        } else {
+            // Apri la schermata informativa con i timestamp delle stampe
+            openEtichettaInfoModal(lotto.lotto_interno);
+        }
+    }
+
+    // --- HANDLER CLICK ETICHETTA VERDE ---
+    function handleEtichettaVerdeClick(event, lotto) {
+        event.stopPropagation(); // Evita l'apertura dei dettagli generali del lotto
+        
+        const isVerdeOk = (lotto.has_verde && lotto.has_verde > 0) || (lotto.etich && (lotto.etich.toLowerCase() === 'ok' || lotto.etich.toLowerCase() === 'si' || lotto.etich.toLowerCase() === 'sì'));
+        
+        if (!isVerdeOk) {
+            // Redirige alla pagina per la generazione delle etichette con il lotto già selezionato
+            window.location.href = `/nuova_etichetta?lotto=${encodeURIComponent(lotto.lotto_interno)}`;
+        } else {
+            // Apri la schermata informativa con i timestamp delle stampe
+            openEtichettaInfoModal(lotto.lotto_interno);
+        }
+    }
+
+    function openEtichettaInfoModal(lottoInterno) {
+        document.getElementById('info-lotto-valore').innerText = lottoInterno;
+        document.getElementById('ts-bianca').innerText = 'Caricamento...';
+        document.getElementById('ts-verde').innerText = 'Caricamento...';
+        document.getElementById('btn-storico-filtrato').href = `/storico_etichetta?q=${encodeURIComponent(lottoInterno)}`;
+        
+        // Mostra subito il modal
+        document.getElementById('labelInfoModal').style.display = "block";
+
+        // Fetch dei timestamp reali dal server
+        fetch(`/api/lotto_etichette_timestamps/${encodeURIComponent(lottoInterno)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('ts-bianca').innerText = data.bianco ? data.bianco : 'Non generata';
+                    document.getElementById('ts-verde').innerText = data.verde ? data.verde : 'Non generata';
+                } else {
+                    document.getElementById('ts-bianca').innerText = 'Errore';
+                    document.getElementById('ts-verde').innerText = 'Errore';
+                }
+            })
+            .catch(err => {
+                console.error("Errore recupero timestamp etichette:", err);
+                document.getElementById('ts-bianca').innerText = 'Errore di rete';
+                document.getElementById('ts-verde').innerText = 'Errore di rete';
+            });
+    }
+
+    function closeLabelInfoModal() {
+        document.getElementById('labelInfoModal').style.display = "none";
+    }
+
     function formatDateDisplay(dateStr) {
         if (!dateStr || dateStr === '-') return '-';
         try {
@@ -352,10 +609,12 @@
         let detailModal = document.getElementById('detailModal');
         let apprModal = document.getElementById('apprModal');
         let infoModal = document.getElementById('customInfoModal');
+        let labelInfoModal = document.getElementById('labelInfoModal');
         
         if (event.target == detailModal) closeModal();
         if (event.target == apprModal) closeApprModal();
         if (event.target == infoModal) closeInfoModal();
+        if (event.target == labelInfoModal) closeLabelInfoModal();
     }
 </script>
 {% endblock %}

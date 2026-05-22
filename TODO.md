@@ -8,13 +8,13 @@ Questa TODO list traccia i passaggi pianificati per migliorare **Gestore-Lab** i
 
 L'obiettivo è garantire la creazione automatica di copie storiche del database ad ogni avvio dell'applicazione.
 
-*   [ ] **Integrazione in `Avvia_Programma.bat`**
-    *   [ ] Creare in automatico la cartella `database/backups/` se mancante.
-    *   [ ] Estrarre la data e l'ora corrente del sistema tramite script Batch.
-    *   [ ] Copiare il file attivo `database.db` rinominandolo in `database_backup_YYYYMMDD_HHMMSS.db`.
-*   [ ] **Algoritmo di Rotazione Automatico (Risparmio Spazio)**
-    *   [ ] Scrivere uno script in Python (avviato in background o all'interno di `app.py`) che controlla la cartella dei backup.
-    *   [ ] Mantenere in automatico solo le ultime **30 copie storiche** più recenti ed eliminare quelle più vecchie per non occupare spazio inutile.
+*   [x] **Integrazione in `Avvia_Programma.bat`**
+    *   [x] Creare in automatico la cartella `database/backups/` se mancante.
+    *   [x] Estrarre la data e l'ora corrente del sistema tramite script Batch.
+    *   [x] Copiare il file attivo `database.db` rinominandolo in `database_backup_YYYYMMDD_HHMMSS.db`.
+*   [x] **Algoritmo di Rotazione Automatico (Risparmio Spazio)**
+    *   [x] Scrivere uno script in Python (avviato in background o all'interno di `app.py`) che controlla la cartella dei backup.
+    *   [x] Mantenere in automatico solo le ultime **30 copie storiche** più recenti ed eliminare quelle più vecchie per non occupare spazio inutile.
 *   [ ] **Sincronizzazione Cloud Facoltativa**
     *   [ ] Consentire la configurazione di un percorso di backup esterno (es. cartella di sincronizzazione attiva di OneDrive, Dropbox o Google Drive) per il backup automatico off-site.
 
@@ -24,19 +24,19 @@ L'obiettivo è garantire la creazione automatica di copie storiche del database 
 
 L'obiettivo è consentire agli operatori del laboratorio di gestire ed effettuare ripristini storici direttamente dal browser in totale autonomia.
 
-*   [ ] **Struttura Backend in `app.py`**
-    *   [ ] Creare la rotta `@app.route('/settings')` per la gestione dell'applicazione.
-    *   [ ] Creare una funzione per scansionare e listare dinamicamente tutti i file `.db` presenti in `database/backups/` ordinati dal più recente.
-*   [ ] **Ripristino Sicuro "a Caldo" (SQLite Online Backup API)**
-    *   [ ] Implementare il ripristino tramite la funzione nativa di SQLite `sorgente.backup(destinazione)`.
-    *   [ ] Gestire ed evitare errori di blocco (*Database file is locked*) chiudendo temporaneamente eventuali cursori attivi.
-*   [ ] **Barriere di Sicurezza & Prevenzione Errori**
-    *   [ ] **Backup Preventivo Immediato:** All'istante prima di sovrascrivere il database con il vecchio backup, creare una copia speciale `database_emergenza_pre_ripristino.db`.
-    *   [ ] **Interfaccia di Doppia Conferma (Modal):** Schermata di blocco che richiede all'utente di confermare l'azione digitando manualmente la parola *"RIPRISTINA"* per sbloccare il pulsante d'invio.
-*   [ ] **Interfaccia Grafica (Settings UI)**
-    *   [ ] Creare il file `templates/settings.html` integrato con il tema scuro premium.
-    *   [ ] Visualizzare la tabella con i backup disponibili (Data, Ora, Dimensione in KB, pulsante "Ripristina" in rosso e pulsante "Scarica" in azzurro).
-    *   [ ] Aggiungere un pulsante per forzare la creazione manuale istantanea di un backup.
+*   [x] **Struttura Backend in `app.py`**
+    *   [x] Creare la rotta `@app.route('/settings')` per la gestione dell'applicazione.
+    *   [x] Creare una funzione per scansionare e listare dinamicamente tutti i file `.db` presenti in `database/backups/` ordinati dal più recente.
+*   [x] **Ripristino Sicuro "a Caldo" (SQLite Online Backup API)**
+    *   [x] Implementare il ripristino tramite la funzione nativa di SQLite `sorgente.backup(destinazione)`.
+    *   [x] Gestire ed evitare errori di blocco (*Database file is locked*) chiudendo temporaneamente eventuali cursori attivi.
+*   [x] **Barriere di Sicurezza & Prevenzione Errori**
+    *   [x] **Backup Preventivo Immediato:** All'istante prima di sovrascrivere il database con il vecchio backup, creare una copia speciale `database_emergenza_pre_ripristino.db`.
+    *   [x] **Interfaccia di Doppia Conferma (Modal):** Schermata di blocco che richiede all'utente di confermare l'azione digitando manualmente la parola *"RIPRISTINA"* per sbloccare il pulsante d'invio.
+*   [x] **Interfaccia Grafica (Settings UI)**
+    *   [x] Creare il file `templates/settings.html` integrato con il tema scuro premium.
+    *   [x] Visualizzare la tabella con i backup disponibili (Data, Ora, Dimensione in KB, pulsante "Ripristina" in rosso e pulsante "Scarica" in azzurro).
+    *   [x] Aggiungere un pulsante per forzare la creazione manuale istantanea di un backup.
 
 ---
 
@@ -44,13 +44,13 @@ L'obiettivo è consentire agli operatori del laboratorio di gestire ed effettuar
 
 L'obiettivo è proteggere il sistema da crash bloccanti ed impostare solide basi per facilitare la manutenzione e la portabilità del codice.
 
-*   [ ] **Script Batch di Ripristino Esterno**
-    *   [ ] Creare un file `Ripristina_Database.bat` nella cartella principale del progetto.
-    *   [ ] In caso di corruzione grave in cui il server Flask non si avvia, lo script deve consentire all'utente di selezionare e ripristinare l'ultimo backup funzionante direttamente dal terminale Windows.
-*   [ ] **Separazione delle Configurazioni (File `.env`)**
-    *   [ ] Spostare tutte le configurazioni cablate (porte, percorsi database, cartelle PDF, chiavi segrete) in un file `.env` esterno per massimizzare la portabilità tra computer.
-*   [ ] **Registro Log Centralizzato (`app.log`)**
-    *   [ ] Implementare il modulo `logging` nativo di Python per registrare automaticamente errori, avvii e azioni critiche (come i ripristini dei backup) in un file di log locale (`database/app.log`).
+*   [x] **Script Batch di Ripristino Esterno**
+    *   [x] Creare un file `Ripristina_Database.bat` nella cartella principale del progetto.
+    *   [x] In caso di corruzione grave in cui il server Flask non si avvia, lo script deve consentire all'utente di selezionare e ripristinare l'ultimo backup funzionante direttamente dal terminale Windows.
+*   [x] **Separazione delle Configurazioni (File `.env`)**
+    *   [x] Spostare tutte le configurazioni cablate (porte, percorsi database, cartelle PDF, chiavi segrete) in un file `.env` esterno per massimizzare la portabilità tra computer.
+*   [x] **Registro Log Centralizzato (`app.log`)**
+    *   [x] Implementare il modulo `logging` nativo di Python per registrare automaticamente errori, avvii e azioni critiche (como i ripristini dei backup) in un file di log locale (`database/app.log`).
 *   [ ] **Scomposizione Modulare di `app.py`**
     *   [ ] Suddividere il file monolitico `app.py` (>1000 righe) in moduli riutilizzabili e più corti (es. `db_utils.py` per le connessioni, `pdf_utils.py` per la logica di stampa, e Blueprint di Flask per dividere le rotte).
 
@@ -63,16 +63,16 @@ L'obiettivo è elevare il livello di qualità, tracciabilità e conformità rego
 *   [ ] **Blocco di Sicurezza "QC Gate" (Controllo Qualità)**
     *   [ ] Nella pagina di **Scarico Automatico (Picking List)**, impedire la selezione di lotti che non abbiano lo stato `appr = 'OK'` (Approvato QC).
     *   [ ] Visualizzare un badge rosso bloccante in corrispondenza dei lotti in stato di quarantena o non ancora approvati.
-*   [ ] **Avvisi e Notifiche di Scadenza (Early Warning Dashboard)**
-    *   [ ] Mostrare avvisi di tipo *Warning* sulla Dashboard per i lotti attivi che **scadranno entro i prossimi 15-30 giorni**.
-    *   [ ] Visualizzare alert bloccanti per eventuali lotti scaduti ancora disponibili a magazzino.
-    *   [ ] Evidenziare in arancione i prodotti che si trovano sotto la soglia di **Scorta Minima**.
+*   [x] **Avvisi e Notifiche di Scadenza (Early Warning Dashboard)**
+    *   [x] Mostrare avvisi di tipo *Warning* sulla Dashboard per i lotti attivi che **scadranno entro i prossimi 15-30 giorni**.
+    *   [x] Visualizzare alert bloccanti per eventuali lotti scaduti ancora disponibili a magazzino.
+    *   [x] Evidenziare in arancione i prodotti che si trovano sotto la soglia di **Scorta Minima**.
 *   [ ] **Integrazione con Lettori Barcode / QR Code**
     *   [ ] Aggiungere un input globale o tasto di ricerca rapida con focus automatico per scansionare etichette.
     *   [ ] Permettere l'identificazione istantanea del lotto scansionato per compilare i campi del prelievo senza digitazione.
-*   [ ] **Registro Modifiche ed Audit Trail (Data Integrity)**
-    *   [ ] Creare la tabella `Audit_Trail` nel database (`id`, `data_ora`, `operatore`, `azione`, `tabella_interessata`, `vecchio_valore`, `nuovo_valore`).
-    *   [ ] Salvare in automatico ogni modifica o eliminazione di lotti/prodotti effettuata dagli operatori per garantire la conformità con i requisiti regolatori sulla tracciabilità dei dati.
+*   [x] **Registro Modifiche ed Audit Trail (Data Integrity)**
+    *   [x] Creare la tabella `Audit_Trail` nel database (`id`, `data_ora`, `operatore`, `azione`, `tabella_interessata`, `vecchio_valore`, `nuovo_valore`).
+    *   [x] Salvare in automatico ogni modifica o eliminazione di lotti/prodotti effettuata dagli operatori per garantire la conformità con i requisiti regolatori sulla tracciabilità dei dati.
 *   [ ] **Statistiche di Consumo & Data Visualization**
     *   [ ] Integrare la libreria *Chart.js* per visualizzare grafici ad area/linee.
     *   [ ] Mostrare il trend dei consumi mensili delle materie prime chiave (es. O-18 acqua, cassette di sintesi).

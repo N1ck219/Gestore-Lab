@@ -1,0 +1,686 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 1.5rem 0; width: 100%;">
+
+
+    <!-- Header della pagina -->
+    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem;">
+        <h2 style="font-size: 2rem; font-weight: 700; color: white; display: flex; align-items: center; gap: 0.75rem;">
+            <span style="filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));">🗂️</span> Registro Etichette Stampate
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 1rem; margin: 0;">Consulta, ricerca e ristampa le etichette per materie prime generate dal laboratorio.</p>
+    </div>
+
+    <!-- SEZIONE BARRA DI RICERCA E FILTRI -->
+    <div class="filters-container" style="background: rgba(17, 23, 38, 0.6); border: 1px solid var(--border-color); border-radius: 1.25rem; padding: 1.5rem; backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); margin-bottom: 2rem; display: flex; flex-direction: column; gap: 1.25rem;">
+        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; width: 100%; align-items: center;">
+            <!-- Campo Ricerca -->
+            <div style="flex: 1; min-width: 280px; position: relative; display: flex; align-items: center;">
+                <span style="position: absolute; left: 1rem; color: var(--text-secondary); font-size: 1rem;">🔍</span>
+                <input type="text" id="label-search-input" placeholder="Cerca per lotto, codice o nome materiale..." style="width: 100%; padding: 0.8rem 1rem 0.8rem 2.5rem; background: rgba(0,0,0,0.35); border: 1px solid var(--border-color); border-radius: 0.75rem; color: white; font-size: 0.95rem; transition: all 0.3s; outline: none;" onfocus="this.style.borderColor='#10b981'; this.style.boxShadow='0 0 0 4px rgba(16, 185, 129, 0.15)';" onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none';">
+            </div>
+
+            <!-- Filtro Tipo Stampa -->
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <span style="color: var(--text-secondary); font-size: 0.9rem; margin-right: 0.5rem; font-weight: 600;">Tipo:</span>
+                <button type="button" class="filter-btn active" data-filter-type="ALL">Tutte</button>
+                <button type="button" class="filter-btn btn-white-filter" data-filter-type="BIANCO">Bianche</button>
+                <button type="button" class="filter-btn btn-green-filter" data-filter-type="VERDE">Verdi (QC)</button>
+            </div>
+
+            <!-- Filtro Data -->
+            <div style="display: flex; gap: 0.5rem; align-items: center; min-width: 220px;">
+                <span style="color: var(--text-secondary); font-size: 0.9rem; margin-right: 0.5rem; font-weight: 600;">Data stampa:</span>
+                <select id="filter-date-select" style="padding: 0.75rem 1.25rem; background: rgba(0,0,0,0.35); border: 1px solid var(--border-color); border-radius: 0.75rem; color: white; font-size: 0.9rem; outline: none; cursor: pointer; transition: border-color 0.2s; width: 100%;">
+                    <option value="ALL">Qualsiasi data</option>
+                    <option value="TODAY">Oggi</option>
+                    <option value="WEEK">Ultimi 7 giorni</option>
+                    <option value="MONTH">Ultimi 30 giorni</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEZIONE TABELLA REGISTRO -->
+    <div class="table-container" style="background: rgba(17, 23, 38, 0.6); border: 1px solid var(--border-color); border-radius: 1.25rem; overflow: hidden; backdrop-filter: blur(12px); box-shadow: 0 10px 40px rgba(0,0,0,0.4); margin-bottom: 2rem;">
+        <table id="history-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="border-bottom: 1px solid var(--border-color); background: rgba(0, 0, 0, 0.25);">
+                    <th style="padding: 1.2rem 1.5rem; color: var(--text-secondary); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">Data & Ora Stampa</th>
+                    <th style="padding: 1.2rem 1.5rem; color: var(--text-secondary); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">Lotto Interno</th>
+                    <th style="padding: 1.2rem 1.5rem; color: var(--text-secondary); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">Codice & Materiale</th>
+                    <th style="padding: 1.2rem 1.5rem; color: var(--text-secondary); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">Arrivo / Quantità</th>
+                    <th style="padding: 1.2rem 1.5rem; color: var(--text-secondary); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; text-align: center;">Tipo</th>
+                    <th style="padding: 1.2rem 1.5rem; color: var(--text-secondary); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">Operatore</th>
+                    <th style="padding: 1.2rem 1.5rem; color: var(--text-secondary); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; text-align: center;">Azione</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if etichette %}
+                    {% for et in etichette %}
+                    <tr class="history-row" 
+                        data-id="{{ et.id }}"
+                        data-tipo-stampa="{{ et.tipo_stampa }}"
+                        data-data-ora="{{ et.data_ora }}"
+                        data-lotto-interno="{{ et.lotto_interno }}"
+                        data-codice-mp="{{ et.codice_mp }}"
+                        data-nome-mp="{{ et.nome_mp }}"
+                        data-data-arrivo="{{ et.data_arrivo }}"
+                        data-quantita="{{ et.quantita }}"
+                        data-lotto-fornitore="{{ et.lotto_fornitore or '-' }}"
+                        data-data-scadenza="{{ et.data_scadenza or '-' }}"
+                        data-data-approvazione="{{ et.data_approvazione or '-' }}"
+                        style="border-bottom: 1px solid rgba(255, 255, 255, 0.03); transition: background 0.2s;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.015)'"
+                        onmouseout="this.style.background='transparent'">
+                        
+                        <!-- Data e Ora -->
+                        <td style="padding: 1.2rem 1.5rem; font-size: 0.9rem; color: var(--text-secondary); font-weight: 500;">
+                            {{ et.data_ora }}
+                        </td>
+                        
+                        <!-- Lotto Interno -->
+                        <td style="padding: 1.2rem 1.5rem;">
+                            <span class="badge-lotto" style="font-family: monospace; font-size: 0.85rem; font-weight: 700; padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.08); color: #34d399;">
+                                {{ et.lotto_interno }}
+                            </span>
+                        </td>
+                        
+                        <!-- Codice & Materiale -->
+                        <td style="padding: 1.2rem 1.5rem;">
+                            <div style="font-weight: 600; color: white; margin-bottom: 0.2rem; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ et.nome_mp }}">
+                                {{ et.nome_mp }}
+                            </div>
+                            <span style="font-size: 0.78rem; color: var(--text-secondary); font-weight: 600;">
+                                Codice: {{ et.codice_mp }}
+                            </span>
+                        </td>
+                        
+                        <!-- Arrivo / Quantità -->
+                        <td style="padding: 1.2rem 1.5rem; font-size: 0.88rem;">
+                            <div style="color: var(--text-secondary); margin-bottom: 0.2rem;">
+                                Arrivo: <strong style="color: rgba(255,255,255,0.85);">{{ et.data_arrivo | dateformat }}</strong>
+                            </div>
+                            <div style="color: var(--text-secondary);">
+                                Q.tà: <strong style="color: rgba(255,255,255,0.85);">{{ et.quantita }}</strong>
+                            </div>
+                        </td>
+                        
+                        <!-- Tipo Stampa -->
+                        <td style="padding: 1.2rem 1.5rem; text-align: center;">
+                            {% if et.tipo_stampa == 'BIANCO' %}
+                                <span class="badge-stampa" style="background: rgba(255, 255, 255, 0.1); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.25); font-weight: 700; font-size: 0.75rem; padding: 3px 10px; border-radius: 4px; text-transform: uppercase;">
+                                    Bianca
+                                </span>
+                            {% elif et.tipo_stampa == 'VERDE' %}
+                                <span class="badge-stampa" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700; font-size: 0.75rem; padding: 3px 10px; border-radius: 4px; text-transform: uppercase;">
+                                    Verde
+                                </span>
+                            {% else %}
+                                <span class="badge-stampa" style="background: rgba(255, 255, 255, 0.08); color: white; border: 1px solid rgba(255, 255, 255, 0.15); font-weight: 700; font-size: 0.75rem; padding: 3px 10px; border-radius: 4px; text-transform: uppercase;">
+                                    {{ et.tipo_stampa }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Operatore -->
+                        <td style="padding: 1.2rem 1.5rem; font-size: 0.88rem; color: var(--text-secondary); font-weight: 500;">
+                            {{ et.operatore or 'Sistema' }}
+                        </td>
+                        
+                        <!-- Azione (Ristampa) -->
+                        <td style="padding: 1.2rem 1.5rem; text-align: center;">
+                            {% if et.tipo_stampa == 'BIANCO' %}
+                                <button onclick="ristampaEtichetta(this)" class="btn-ristampa-table btn-white-ristampa" title="Ristampa questa etichetta bianca">
+                                    🖨️ Ristampa
+                                </button>
+                            {% elif et.tipo_stampa == 'VERDE' %}
+                                <button onclick="ristampaEtichetta(this)" class="btn-ristampa-table btn-green-ristampa" title="Ristampa questa etichetta verde approvata">
+                                    🖨️ Ristampa
+                                </button>
+                            {% else %}
+                                <button onclick="ristampaEtichetta(this)" class="btn-ristampa-table btn-neutral-ristampa" title="Ristampa questa etichetta">
+                                    🖨️ Ristampa
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr id="table-empty-row">
+                        <td colspan="7" style="padding: 4rem 2rem; text-align: center; color: var(--text-secondary);">
+                            <div style="font-size: 2.5rem; margin-bottom: 1rem;">🏷️</div>
+                            <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.2rem;">Nessuna etichetta generata</h4>
+                            <p style="font-size: 0.9rem;">Non è stata ancora registrata alcuna etichetta nello storico.</p>
+                        </td>
+                    </tr>
+                {% endif %}
+                <!-- Row per risultati di ricerca vuoti (nascosta di base) -->
+                <tr id="search-empty-row" style="display: none;">
+                    <td colspan="7" style="padding: 4rem 2rem; text-align: center; color: var(--text-secondary);">
+                        <div style="font-size: 2.5rem; margin-bottom: 1rem;">🔍</div>
+                        <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.2rem;">Nessun risultato trovato</h4>
+                        <p style="font-size: 0.9rem;">Modifica i criteri di ricerca o i filtri applicati.</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- CONTAINER NASCOSTO PER LA STAMPA: GRIGLIA A4 2x4 (8 ETICHETTE IDENTICHE) -->
+<div id="print-grid-container"></div>
+
+<style>
+/* Filtri e Pulsanti */
+.filter-btn {
+    padding: 0.6rem 1.25rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 0.6rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.filter-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.filter-btn.active {
+    color: white;
+    background: rgba(16, 185, 129, 0.15);
+    border-color: #10b981;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+}
+
+.filter-btn.btn-white-filter.active {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #ffffff;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+}
+
+.filter-btn.btn-green-filter.active {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: #10b981;
+    color: #34d399;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+}
+
+/* Pulsanti Ristampa */
+.btn-ristampa-table {
+    padding: 0.5rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-white-ristampa {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    border: 1.5px solid #ffffff !important;
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.1);
+}
+
+.btn-white-ristampa:hover {
+    background: #f8fafc !important;
+    border-color: #ffffff !important;
+    color: #0f172a !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
+}
+
+.btn-green-ristampa {
+    background: #ffffff !important;
+    color: #047857 !important;
+    border: 1.5px solid #34d399 !important;
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.1);
+}
+
+.btn-green-ristampa:hover {
+    background: #ecfdf5 !important;
+    border-color: #059669 !important;
+    color: #047857 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(16, 185, 129, 0.2);
+}
+
+.btn-neutral-ristampa {
+    background: #ffffff !important;
+    color: var(--text-secondary) !important;
+    border: 1.5px solid var(--border-color) !important;
+}
+
+.btn-neutral-ristampa:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: white !important;
+    transform: translateY(-2px);
+}
+
+/* Nascondi sullo schermo la griglia di stampa */
+#print-grid-container {
+    display: none;
+}
+
+/* ============================================================== */
+/* REGOLE SPECIALI PER LA STAMPA SU FOGLIO A4 GRIGLIA 3x8 (24 ETICHETTE) */
+/* ============================================================== */
+@media print {
+    /* Nascondi tutti gli elementi non di stampa usando display: none per collassare lo spazio ed evitare la seconda pagina */
+    html, body, .container, main {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        background: white !important;
+        box-shadow: none !important;
+    }
+
+    header, .alert, main > div:not(#print-grid-container) {
+        display: none !important;
+    }
+    
+    #print-grid-container {
+        display: grid !important;
+        grid-template-columns: repeat(3, 65mm) !important;
+        grid-template-rows: repeat(8, 34mm) !important;
+        gap: 3mm 5mm !important;
+        width: 100% !important;
+        max-width: 210mm !important;
+        height: auto !important;
+        margin: 0 auto !important;
+        padding: 2mm 0 0 0 !important; /* Margine superiore sul foglio A4 per centrare la griglia */
+        box-sizing: border-box !important;
+        justify-content: center !important;
+        align-content: start !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+    }
+    
+    .printable-label-item {
+        width: 65mm !important;
+        height: 34mm !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        page-break-inside: avoid !important;
+        background: white !important;
+    }
+    
+    /* STAMPA ETICHETTA BIANCA */
+    .label-print-table {
+        width: 65mm !important;
+        height: 34mm !important;
+        border: 2px solid black !important;
+        border-collapse: collapse !important;
+        table-layout: fixed !important;
+        box-sizing: border-box !important;
+    }
+    
+    .label-print-table td {
+        border: 1.5px solid black !important;
+        padding: 2px 4px !important;
+        color: black !important;
+        background: white !important;
+        box-sizing: border-box !important;
+        vertical-align: middle !important;
+        word-wrap: break-word !important;
+        overflow: hidden !important;
+    }
+    
+    .label-print-table .label-key-cell {
+        width: 26mm !important;
+        max-width: 26mm !important;
+        height: 8mm !important;
+        font-weight: 800 !important;
+        font-size: 6.5pt !important;
+        text-align: left !important;
+        letter-spacing: 0.02em !important;
+    }
+    
+    .label-print-table .label-val-cell {
+        width: 39mm !important;
+        max-width: 39mm !important;
+        height: 8mm !important;
+        font-weight: 600 !important;
+        font-size: 7.5pt !important;
+        text-align: left !important;
+    }
+    
+    /* STAMPA ETICHETTA VERDE */
+    .green-print-table {
+        width: 65mm !important;
+        height: 34mm !important;
+        border: 2px solid black !important;
+        border-collapse: collapse !important;
+        table-layout: fixed !important;
+        box-sizing: border-box !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    .green-print-table td {
+        border: 1.5px solid black !important;
+        padding: 1px 3px !important;
+        color: black !important;
+        background: white !important; /* Sfondo bianco forzato in stampa (di verde ha solo il nome) */
+        box-sizing: border-box !important;
+        vertical-align: middle !important;
+        word-wrap: break-word !important;
+        overflow: hidden !important;
+    }
+    
+    .green-print-title-cell {
+        height: 6mm !important;
+        text-align: center !important;
+        font-size: 10pt !important;
+        font-weight: 900 !important;
+        color: #1e40af !important;
+        letter-spacing: 0.03em !important;
+        padding: 0 !important;
+        border-bottom: 1.5px solid black !important;
+    }
+    
+    .green-print-sigla-cell {
+        height: 4mm !important;
+        text-align: center !important;
+        font-size: 6pt !important;
+        font-weight: 800 !important;
+        color: black !important;
+        letter-spacing: 0.01em !important;
+        padding: 0 !important;
+        border-bottom: 1.5px solid black !important;
+    }
+    
+    .green-print-table .label-key-cell {
+        width: 26mm !important;
+        max-width: 26mm !important;
+        height: 5.5mm !important;
+        font-weight: 800 !important;
+        font-size: 6pt !important;
+        text-align: left !important;
+        letter-spacing: 0.01em !important;
+    }
+    
+    .green-print-table .label-val-cell {
+        width: 39mm !important;
+        max-width: 39mm !important;
+        height: 5.5mm !important;
+        font-weight: 700 !important;
+        font-size: 7pt !important;
+        text-align: left !important;
+    }
+    
+    .val-blue {
+        color: #1e40af !important;
+    }
+    
+    .val-mono {
+        font-family: monospace;
+        font-weight: 800 !important;
+    }
+    
+    @page {
+        size: A4 portrait;
+        margin: 0 !important;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('label-search-input');
+    const filterDateSelect = document.getElementById('filter-date-select');
+    const filterTypeButtons = document.querySelectorAll('.filter-btn');
+    const rows = Array.from(document.querySelectorAll('.history-row'));
+    const emptyRow = document.getElementById('table-empty-row');
+    const searchEmptyRow = document.getElementById('search-empty-row');
+
+    let activeTypeFilter = 'ALL';
+
+    // Ricerca testuale in tempo reale
+    searchInput.addEventListener('input', applyFilters);
+
+    // Filtro per data
+    filterDateSelect.addEventListener('change', applyFilters);
+
+    // Filtro per tipo di stampa (pulsanti)
+    filterTypeButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            filterTypeButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            activeTypeFilter = this.dataset.filterType;
+            applyFilters();
+        });
+    });
+
+    // Gestione parametri URL q e type per pre-filtrare
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryParam = urlParams.get('q');
+    const typeParam = urlParams.get('type');
+
+    if (queryParam) {
+        searchInput.value = queryParam;
+    }
+
+    if (typeParam) {
+        activeTypeFilter = typeParam;
+        filterTypeButtons.forEach(btn => {
+            if (btn.dataset.filterType === typeParam) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+
+    // Applica subito i filtri all'avvio se ci sono parametri URL
+    if (queryParam || typeParam) {
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const query = searchInput.value.toLowerCase().trim();
+        const dateFilter = filterDateSelect.value;
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const lotto = row.dataset.lottoInterno.toLowerCase();
+            const nome = row.dataset.nomeMp.toLowerCase();
+            const codice = row.dataset.codiceMp.toLowerCase();
+            const tipo = row.dataset.tipoStampa; // 'BIANCO' o 'VERDE'
+            const dataOraStr = row.dataset.dataOra; // 'DD-MM-YYYY HH:MM:SS'
+
+            // 1. Filtro Ricerca
+            const matchesQuery = lotto.includes(query) || nome.includes(query) || codice.includes(query);
+
+            // 2. Filtro Tipo Stampa
+            const matchesType = activeTypeFilter === 'ALL' || tipo === activeTypeFilter;
+
+            // 3. Filtro Data
+            let matchesDate = true;
+            if (dateFilter !== 'ALL') {
+                matchesDate = checkDateMatch(dataOraStr, dateFilter);
+            }
+
+            if (matchesQuery && matchesType && matchesDate) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Gestione degli empty state
+        if (rows.length === 0) {
+            if (emptyRow) emptyRow.style.display = '';
+            if (searchEmptyRow) searchEmptyRow.style.display = 'none';
+        } else {
+            if (emptyRow) emptyRow.style.display = 'none';
+            if (visibleCount === 0) {
+                searchEmptyRow.style.display = '';
+            } else {
+                searchEmptyRow.style.display = 'none';
+            }
+        }
+    }
+
+    // Helper per verificare se la data del record soddisfa il filtro
+    function checkDateMatch(dataOraStr, filterVal) {
+        if (!dataOraStr) return false;
+        
+        // Estrai data da 'DD-MM-YYYY HH:MM:SS'
+        const parts = dataOraStr.split(' ');
+        if (!parts[0]) return false;
+        const dateParts = parts[0].split('-');
+        if (dateParts.length !== 3) return false;
+        
+        const day = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10) - 1; // 0-indexed month
+        const year = parseInt(dateParts[2], 10);
+        
+        const recordDate = new Date(year, month, day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        recordDate.setHours(0, 0, 0, 0);
+
+        if (filterVal === 'TODAY') {
+            return recordDate.getTime() === today.getTime();
+        } else if (filterVal === 'WEEK') {
+            const sevenDaysAgo = new Date(today);
+            sevenDaysAgo.setDate(today.getDate() - 7);
+            return recordDate >= sevenDaysAgo && recordDate <= today;
+        } else if (filterVal === 'MONTH') {
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            return recordDate >= thirtyDaysAgo && recordDate <= today;
+        }
+        return true;
+    }
+});
+
+// Funzione globale per ristampare direttamente dal pulsante della riga
+function ristampaEtichetta(btn) {
+    const row = btn.closest('.history-row');
+    if (!row) return;
+
+    const dataset = row.dataset;
+    const lottoInterno = dataset.lottoInterno;
+    const nomeMp = dataset.nomeMp;
+    const codiceMp = dataset.codiceMp;
+    const dataArrivo = dataset.dataArrivo;
+    const quantita = dataset.quantita;
+    const tipo = dataset.tipoStampa; // 'BIANCO' o 'VERDE'
+    const lottoFornitore = dataset.lottoFornitore || '-';
+    const dataScadenza = dataset.dataScadenza || '-';
+    const dataApprovazione = dataset.dataApprovazione || '-';
+
+    // Helper per formattare la data da YYYY-MM-DD o DD-MM-YYYY a DD/MM/YYYY
+    function formatDate(dateStr) {
+        if (!dateStr || dateStr === '-') return '-';
+        if (dateStr.includes('-')) {
+            const parts = dateStr.split('-');
+            if (parts[0].length === 4) {
+                // Formato YYYY-MM-DD
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            } else {
+                // Formato DD-MM-YYYY
+                return `${parts[0]}/${parts[1]}/${parts[2]}`;
+            }
+        }
+        if (dateStr.includes('/')) {
+            return dateStr.replace(/\-/g, '/');
+        }
+        return dateStr;
+    }
+
+    const formattedDateArrivo = formatDate(dataArrivo);
+    const formattedScadenza = formatDate(dataScadenza);
+    const formattedApprovazione = formatDate(dataApprovazione);
+
+    const printGrid = document.getElementById('print-grid-container');
+    printGrid.innerHTML = ''; // svuota precedente
+
+    for (let i = 0; i < 24; i++) {
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'printable-label-item';
+        
+        if (tipo === 'BIANCO') {
+            labelDiv.innerHTML = `
+                <table class="label-print-table">
+                    <tr>
+                        <td class="label-key-cell">MATERIALE</td>
+                        <td class="label-val-cell">${nomeMp}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-key-cell">LOTTO INTERNO</td>
+                        <td class="label-val-cell" style="font-family: monospace; font-weight: 800; font-size: 1.1rem;">${lottoInterno}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-key-cell">DATA DI ARRIVO</td>
+                        <td class="label-val-cell">${formattedDateArrivo}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-key-cell">QUANTITA'</td>
+                        <td class="label-val-cell">${quantita}</td>
+                    </tr>
+                </table>
+            `;
+        } else if (tipo === 'VERDE') {
+            labelDiv.innerHTML = `
+                <table class="green-print-table">
+                    <tr>
+                        <td colspan="2" class="green-print-title-cell">APPROVATO</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" class="green-print-sigla-cell">SIGLA QC _________</td>
+                    </tr>
+                    <tr>
+                        <td class="label-key-cell">LOTTO INTERNO</td>
+                        <td class="label-val-cell val-blue val-mono">${lottoInterno}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-key-cell">LOTTO FORNITORE</td>
+                        <td class="label-val-cell val-black">${lottoFornitore}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-key-cell">APPROVAZIONE</td>
+                        <td class="label-val-cell val-blue">${formattedApprovazione}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-key-cell">DATA SCADENZA</td>
+                        <td class="label-val-cell val-blue">${formattedScadenza}</td>
+                    </tr>
+                </table>
+            `;
+        }
+        printGrid.appendChild(labelDiv);
+    }
+
+    // Feedback visivo immediato sul pulsante
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ Preparazione...';
+    btn.disabled = true;
+
+    setTimeout(() => {
+        window.print();
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }, 150);
+}
+</script>
+{% endblock %}

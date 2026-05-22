@@ -325,6 +325,19 @@
                     <h3 style="font-size: 1.15rem;">Storico Scarichi</h3>
                     <p style="font-size: 0.85rem;">Consulta il registro di tutti i movimenti in uscita</p>
                 </a>
+
+                <!-- Sezione Etichette -->
+                <a href="{{ url_for('nuova_etichetta') }}" class="main-card card-etichette" style="padding: 2rem;">
+                    <div class="card-icon" style="font-size: 2.2rem; margin-bottom: 0.8rem;">🏷️</div>
+                    <h3 style="font-size: 1.15rem;">Nuova Etichetta</h3>
+                    <p style="font-size: 0.85rem;">Genera o stampa una nuova etichetta per il laboratorio</p>
+                </a>
+
+                <a href="{{ url_for('storico_etichetta') }}" class="main-card card-etichette" style="padding: 2rem;">
+                    <div class="card-icon" style="font-size: 2.2rem; margin-bottom: 0.8rem;">🗂️</div>
+                    <h3 style="font-size: 1.15rem;">Storico Etichetta</h3>
+                    <p style="font-size: 0.85rem;">Consulta il registro di tutte le etichette stampate</p>
+                </a>
             </div>
         </div>
 
@@ -357,11 +370,7 @@
                         </div>
                         {% endfor %}
                     </div>
-                    <div style="margin-top: 0.8rem; text-align: center;">
-                        <a href="{{ url_for('lotti_list') }}" style="color: #ff8a9e; font-size: 0.72rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.2rem; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
-                            Gestisci nel Registro Lotti &rarr;
-                        </a>
-                    </div>
+
                 </div>
                 {% endif %}
 
@@ -390,11 +399,7 @@
                         </div>
                         {% endfor %}
                     </div>
-                    <div style="margin-top: 0.8rem; text-align: center;">
-                        <a href="{{ url_for('lotti_list') }}" style="color: #ffd166; font-size: 0.72rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.2rem; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
-                            Apri Registro Lotti &rarr;
-                        </a>
-                    </div>
+
                 </div>
                 {% endif %}
 
@@ -420,11 +425,7 @@
                         </div>
                         {% endfor %}
                     </div>
-                    <div style="margin-top: 0.8rem; text-align: center;">
-                        <a href="{{ url_for('magazzino') }}" style="color: #ffaa66; font-size: 0.72rem; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.2rem; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
-                            Monitora Inventario &rarr;
-                        </a>
-                    </div>
+
                 </div>
                 {% endif %}
 

@@ -4,11 +4,68 @@ import os
 import json
 from datetime import datetime, timedelta
 from fpdf import FPDF
+from dotenv import load_dotenv
+
+# Carica le variabili di ambiente dal file .env se presente
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "materie_prime_secret"
+app.secret_key = os.getenv("SECRET_KEY", "materie_prime_secret")
 
-DB_PATH = os.path.join("database", "database.db")
+# Configurazione Database e Directory di Backup
+DB_PATH = os.getenv("DB_PATH", os.path.join("database", "database.db"))
+BACKUP_DIR = os.getenv("BACKUP_DIR", os.path.join("database", "backups"))
+
+# Configurazione Cartelle per i Documenti PDF Generati
+LISTA_DISTRIBUZIONE_DIR = os.getenv("LISTA_DISTRIBUZIONE_DIR", "lista_distribuzione")
+RICHIESTA_ANALISI_DIR = os.getenv("RICHIESTA_ANALISI_DIR", "richiesta_analisi")
+PICKING_LIST_DIR = os.getenv("PICKING_LIST_DIR", "picking list")
+
+# Configurazione Percorso Log di Sistema
+APP_LOG_PATH = os.getenv("APP_LOG_PATH", os.path.join("database", "app.log"))
+
+# Risolve i percorsi in modo relativo alla radice del progetto se non assoluti
+def resolve_project_path(path):
+    if not os.path.isabs(path):
+        return os.path.join(app.root_path, path)
+    return path
+
+resolved_db_path = resolve_project_path(DB_PATH)
+resolved_backup_dir = resolve_project_path(BACKUP_DIR)
+resolved_log_path = resolve_project_path(APP_LOG_PATH)
+
+# Assicura che le cartelle del database e dei log esistano
+os.makedirs(os.path.dirname(resolved_db_path), exist_ok=True)
+os.makedirs(os.path.dirname(resolved_log_path), exist_ok=True)
+
+# Configura il logger con RotatingFileHandler
+import logging
+from logging.handlers import RotatingFileHandler
+
+log_handler = RotatingFileHandler(
+    resolved_log_path, 
+    maxBytes=5*1024*1024, # 5 MegaBytes
+    backupCount=5,
+    encoding='utf-8'
+)
+log_handler.setFormatter(logging.Formatter(
+    '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+))
+log_handler.setLevel(logging.INFO)
+
+# Associa sia al logger di Flask che a quello radice
+app.logger.addHandler(log_handler)
+logging.getLogger().addHandler(log_handler)
+logging.getLogger().setLevel(logging.INFO)
+
+# Logga l'avvio solo sul processo principale per evitare duplicati in modalità debug
+if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
+    app.logger.info("======================================================================")
+    app.logger.info(f"🧪 Gestore-Lab: Avvio dell'applicazione Flask")
+    app.logger.info(f"💾 Database attivo: {resolved_db_path}")
+    app.logger.info(f"🔄 Cartella backups: {resolved_backup_dir}")
+    app.logger.info(f"📋 File di log: {resolved_log_path}")
+    app.logger.info("======================================================================")
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -37,6 +94,31 @@ def init_audit_db():
 
 # Inizializza il database dell'audit trail all'avvio
 init_audit_db()
+
+def init_etichette_db():
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS Storico_Etichette (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                data_ora TEXT NOT NULL,
+                lotto_interno TEXT NOT NULL,
+                codice_mp TEXT NOT NULL,
+                nome_mp TEXT NOT NULL,
+                data_arrivo TEXT NOT NULL,
+                quantita TEXT NOT NULL,
+                tipo_stampa TEXT NOT NULL,
+                operatore TEXT
+            )
+        ''')
+        conn.commit()
+    except Exception as e:
+        print(f"Errore durante la creazione della tabella Storico_Etichette: {e}")
+    finally:
+        conn.close()
+
+# Inizializza il database dello storico etichette all'avvio
+init_etichette_db()
 
 def log_audit(azione, tabella_interessata, operatore, vecchio_valore=None, nuovo_valore=None, conn=None):
     data_ora = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
@@ -321,9 +403,10 @@ def delete_product():
 @app.route('/lotti')
 def lotti_list():
     conn = get_db_connection()
-    # Recuperiamo i lotti con il nome della materia prima associata tramite JOIN
     lotti_rows = conn.execute('''
-        SELECT L.*, M.nome_mp 
+        SELECT L.*, M.nome_mp,
+               (SELECT COUNT(*) FROM Storico_Etichette S WHERE S.lotto_interno = L.lotto_interno AND S.tipo_stampa = 'BIANCO') as has_bianco,
+               (SELECT COUNT(*) FROM Storico_Etichette S WHERE S.lotto_interno = L.lotto_interno AND S.tipo_stampa = 'VERDE') as has_verde
         FROM Lotti_Interni L 
         LEFT JOIN Elenco_MP M ON L.codice_mp = M.codice 
         ORDER BY L.data_arrivo DESC
@@ -661,6 +744,463 @@ def api_cc_info(lotto_interno):
                 'success': True,
                 'found': False
             }
+    except Exception as e:
+        return {'success': False, 'message': str(e)}, 500
+    finally:
+        conn.close()
+
+def clean_pdf_string(s):
+    if not s:
+        return ""
+    # Sostituzioni comuni per caratteri accentati in italiano
+    replacements = {
+        'à': "a'", 'á': "a'",
+        'è': "e'", 'é': "e'",
+        'ì': "i'", 'í': "i'",
+        'ò': "o'", 'ó': "o'",
+        'ù': "u'", 'ú': "u'",
+        'À': "A'", 'È': "E'",
+        'Ì': "I'", 'Ò': "O'",
+        'Ù': "U'"
+    }
+    for k, v in replacements.items():
+        s = s.replace(k, v)
+    # Rimpiazza tutti gli altri caratteri non latin-1 con ?
+    return s.encode('latin-1', 'replace').decode('latin-1')
+
+@app.route('/api/genera_pdf_distribuzione/<lotto_interno>', methods=['POST'])
+def genera_pdf_distribuzione(lotto_interno):
+    conn = get_db_connection()
+    try:
+        # 1. Recupera i dettagli del lotto e della materia prima associata
+        lotto_row = conn.execute('''
+            SELECT L.*, M.nome_mp 
+            FROM Lotti_Interni L 
+            LEFT JOIN Elenco_MP M ON L.codice_mp = M.codice 
+            WHERE L.lotto_interno = ?
+        ''', (lotto_interno,)).fetchone()
+        
+        if not lotto_row:
+            return {'success': False, 'message': 'Lotto non trovato'}, 404
+            
+        lotto_row = dict(lotto_row)
+        
+        # 2. Recupera l'elenco degli scarichi per questo lotto in ordine cronologico
+        scarichi_rows = conn.execute('''
+            SELECT S.data, S.causale, S.quantita, S.operatore, S.lotto_prod, S.data_ultimo_utilizzo 
+            FROM Scarichi S
+            WHERE S.lotto_interno = ?
+            ORDER BY S.data ASC, S.id ASC
+        ''', (lotto_interno,)).fetchall()
+        
+        scarichi = [dict(row) for row in scarichi_rows]
+        
+        # 3. Creazione cartella di destinazione
+        save_dir = LISTA_DISTRIBUZIONE_DIR
+        if not os.path.isabs(save_dir):
+            save_dir = os.path.join(app.root_path, save_dir)
+        os.makedirs(save_dir, exist_ok=True)
+        
+        # 4. Nome file sanificato
+        import re
+        safe_lotto = re.sub(r'[\\/*?:"<>|]', '_', lotto_interno)
+        filename = f"lista_distribuzione_{safe_lotto}.pdf"
+        filepath = os.path.join(save_dir, filename)
+        
+        # 5. Generazione del PDF con FPDF
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("helvetica", size=10)
+        
+        # Header Box (Bordo principale)
+        pdf.rect(10, 10, 190, 25)
+        
+        # Logo aziendale (se presente)
+        logo_path = os.path.join("static", "img", "logo.jpg")
+        if os.path.exists(logo_path):
+            pdf.image(logo_path, 15, 12, 35)
+            
+        pdf.line(55, 10, 55, 35)
+        
+        # Titolo
+        pdf.set_font("helvetica", "B", 12)
+        pdf.set_xy(55, 10)
+        pdf.cell(95, 25, "LISTA DI DISTRIBUZIONE LOTTO", border=0, align="C")
+        
+        pdf.line(150, 10, 150, 35)
+        
+        # Data di generazione e Pagina
+        pdf.set_font("helvetica", size=8)
+        pdf.set_xy(150, 10)
+        pdf.cell(50, 12.5, f"Data: {datetime.now().strftime('%d-%m-%Y')}", border="B", align="C")
+        pdf.set_xy(150, 22.5)
+        pdf.cell(50, 12.5, "Pagina: 1 di 1", align="C")
+        
+        # Meta informazioni sul lotto e la materia prima
+        pdf.ln(15)
+        pdf.set_font("helvetica", "B", 11)
+        pdf.cell(190, 8, clean_pdf_string("DETTAGLIO MATERIA PRIMA E LOTTO"), ln=True)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(2)
+        
+        nome_materia = lotto_row.get('nome_mp') or "N.D."
+        codice_materia = lotto_row.get('codice_mp') or "N.D."
+        lotto_forn = lotto_row.get('lotto_fornitore') or "N.D."
+        forn = lotto_row.get('fornitore') or "N.D."
+        scadenza = lotto_row.get('data_scadenza') or "N.D."
+        arrivo = lotto_row.get('data_arrivo') or "N.D."
+        
+        # Formattazione date per visualizzazione
+        try:
+            scad_display = datetime.strptime(scadenza, '%Y-%m-%d').strftime('%d-%m-%Y')
+        except:
+            scad_display = scadenza
+            
+        try:
+            arrivo_display = datetime.strptime(arrivo, '%Y-%m-%d').strftime('%d-%m-%Y')
+        except:
+            arrivo_display = arrivo
+            
+        pdf.set_font("helvetica", "B", 9)
+        pdf.cell(35, 6, "Materia Prima:")
+        pdf.set_font("helvetica", size=9)
+        pdf.cell(155, 6, clean_pdf_string(f"{nome_materia} (Codice: {codice_materia})"), ln=True)
+        
+        pdf.set_font("helvetica", "B", 9)
+        pdf.cell(35, 6, "Lotto Interno:")
+        pdf.set_font("helvetica", size=9)
+        pdf.cell(60, 6, clean_pdf_string(lotto_interno))
+        pdf.set_font("helvetica", "B", 9)
+        pdf.cell(35, 6, "Lotto Fornitore:")
+        pdf.set_font("helvetica", size=9)
+        pdf.cell(60, 6, clean_pdf_string(lotto_forn), ln=True)
+        
+        pdf.set_font("helvetica", "B", 9)
+        pdf.cell(35, 6, "Fornitore:")
+        pdf.set_font("helvetica", size=9)
+        pdf.cell(60, 6, clean_pdf_string(forn))
+        pdf.set_font("helvetica", "B", 9)
+        pdf.cell(35, 6, "Data Arrivo:")
+        pdf.set_font("helvetica", size=9)
+        pdf.cell(60, 6, clean_pdf_string(arrivo_display), ln=True)
+        
+        pdf.set_font("helvetica", "B", 9)
+        pdf.cell(35, 6, "Data Scadenza:")
+        pdf.set_font("helvetica", size=9)
+        pdf.cell(60, 6, clean_pdf_string(scad_display))
+        pdf.set_font("helvetica", "B", 9)
+        pdf.cell(35, 6, "Data Stampa PDF:")
+        pdf.set_font("helvetica", size=9)
+        pdf.cell(60, 6, datetime.now().strftime('%d-%m-%Y %H:%M:%S'), ln=True)
+        
+        pdf.ln(6)
+        
+        # Tabella degli utilizzi (Scarichi)
+        pdf.set_font("helvetica", "B", 11)
+        pdf.cell(190, 8, clean_pdf_string("REGISTRO DEGLI UTILIZZI (SCARICHI)"), ln=True)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(4)
+        
+        try:
+            qnt_iniziale = float(lotto_row.get('qnt_arrivata') or 0)
+        except (ValueError, TypeError):
+            qnt_iniziale = 0.0
+
+        def format_qty(val):
+            try:
+                val_f = float(val)
+                if val_f.is_integer():
+                    return str(int(val_f))
+                return f"{val_f:.2f}".rstrip('0').rstrip('.')
+            except:
+                return str(val)
+
+        if not scarichi:
+            pdf.set_font("helvetica", "I", 10)
+            pdf.cell(190, 8, clean_pdf_string("Nessun utilizzo o scarico registrato per questo lotto."), ln=True)
+        else:
+            # Larghezze colonne: Data (30), Causale (65), Quantità (25), Qtà Rimanente (35), Operatore (35) = 190
+            pdf.set_font("helvetica", "B", 9)
+            pdf.cell(30, 7, "Data", border=1, align="C")
+            pdf.cell(65, 7, "Causale", border=1, align="C")
+            pdf.cell(25, 7, clean_pdf_string("Quantita'"), border=1, align="C")
+            pdf.cell(35, 7, clean_pdf_string("Q.ta' Rimanente"), border=1, align="C")
+            pdf.cell(35, 7, "Operatore", border=1, align="C", ln=True)
+            
+            pdf.set_font("helvetica", size=8)
+            qnt_rimanente = qnt_iniziale
+            for row in scarichi:
+                try:
+                    data_disp = datetime.strptime(row['data'], '%Y-%m-%d').strftime('%d-%m-%Y')
+                except:
+                    data_disp = row['data'] or "-"
+                    
+                try:
+                    q_scarico = float(row['quantita'] or 0)
+                except:
+                    q_scarico = 0.0
+                    
+                qnt_rimanente -= q_scarico
+                
+                pdf.cell(30, 6, clean_pdf_string(data_disp), border=1, align="C")
+                pdf.cell(65, 6, clean_pdf_string(row['causale']), border=1)
+                pdf.cell(25, 6, clean_pdf_string(format_qty(q_scarico)), border=1, align="C")
+                pdf.cell(35, 6, clean_pdf_string(format_qty(qnt_rimanente)), border=1, align="C")
+                pdf.cell(35, 6, clean_pdf_string(row['operatore']), border=1, ln=True)
+                
+        # 6. Salvataggio del PDF
+        pdf.output(filepath)
+        
+        return {'success': True, 'filename': filename, 'path': filepath}
+        
+    except Exception as e:
+        return {'success': False, 'message': str(e)}, 500
+    finally:
+        conn.close()
+
+@app.route('/api/aggiungi_attesa_qc/<lotto_interno>', methods=['POST'])
+def api_aggiungi_attesa_qc(lotto_interno):
+    conn = get_db_connection()
+    try:
+        # Recupera il vecchio valore per l'audit trail
+        old_row = conn.execute("SELECT * FROM Lotti_Interni WHERE lotto_interno = ?", (lotto_interno,)).fetchone()
+        if not old_row:
+            return {'success': False, 'message': 'Lotto non trovato'}, 404
+        old_val = dict(old_row)
+
+        conn.execute("UPDATE Lotti_Interni SET qc_attesa = 'SI' WHERE lotto_interno = ?", (lotto_interno,))
+        
+        # Costruisce il nuovo valore
+        new_val = dict(old_val)
+        new_val['qc_attesa'] = 'SI'
+        
+        log_audit(
+            azione="AGGIUNGI_ATTESA_QC",
+            tabella_interessata="Lotti_Interni",
+            operatore="Sistema",
+            vecchio_valore=old_val,
+            nuovo_valore=new_val,
+            conn=conn
+        )
+        conn.commit()
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'message': str(e)}, 500
+    finally:
+        conn.close()
+
+@app.route('/api/rimuovi_attesa_qc/<lotto_interno>', methods=['POST'])
+def api_rimuovi_attesa_qc(lotto_interno):
+    conn = get_db_connection()
+    try:
+        # Recupera il vecchio valore per l'audit trail
+        old_row = conn.execute("SELECT * FROM Lotti_Interni WHERE lotto_interno = ?", (lotto_interno,)).fetchone()
+        if not old_row:
+            return {'success': False, 'message': 'Lotto non trovato'}, 404
+        old_val = dict(old_row)
+
+        conn.execute("UPDATE Lotti_Interni SET qc_attesa = 'NO' WHERE lotto_interno = ?", (lotto_interno,))
+        
+        # Costruisce il nuovo valore
+        new_val = dict(old_val)
+        new_val['qc_attesa'] = 'NO'
+        
+        log_audit(
+            azione="RIMUOVI_ATTESA_QC",
+            tabella_interessata="Lotti_Interni",
+            operatore="Sistema",
+            vecchio_valore=old_val,
+            nuovo_valore=new_val,
+            conn=conn
+        )
+        conn.commit()
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'message': str(e)}, 500
+    finally:
+        conn.close()
+
+@app.route('/api/stampa_richiesta_analisi', methods=['POST'])
+def api_stampa_richiesta_analisi():
+    conn = get_db_connection()
+    try:
+        # 1. Recupera tutti i lotti in attesa di QC
+        lotti_rows = conn.execute('''
+            SELECT L.*, M.nome_mp, M.unita_misura
+            FROM Lotti_Interni L
+            LEFT JOIN Elenco_MP M ON L.codice_mp = M.codice
+            WHERE L.qc_attesa = 'SI'
+            ORDER BY L.data_arrivo DESC, L.lotto_interno DESC
+        ''').fetchall()
+        
+        lotti = [dict(row) for row in lotti_rows]
+        if not lotti:
+            return {'success': False, 'message': 'Nessun lotto in lista di attesa.'}, 400
+        
+        # 2. Creazione cartella di destinazione
+        save_dir = RICHIESTA_ANALISI_DIR
+        if not os.path.isabs(save_dir):
+            save_dir = os.path.join(app.root_path, save_dir)
+        os.makedirs(save_dir, exist_ok=True)
+        
+        # 3. Nome file basato sulla data e ora odierna (YYYYMMDD_HHMMSS) per evitare sovrascritture
+        today_str = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"richiesta_analisi_{today_str}.pdf"
+        filepath = os.path.join(save_dir, filename)
+        
+        # 4. Generazione del PDF con FPDF
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_margins(10, 10, 10)
+        pdf.set_auto_page_break(auto=True, margin=10)
+        
+        # --- DISEGNO INTESTAZIONE (EXCEL STYLE GRID) ---
+        # Disegnamo la struttura superiore (tabella 190mm di larghezza)
+        # Bordo esterno principale dell'intestazione
+        pdf.set_draw_color(0, 0, 0)
+        pdf.set_line_width(0.3)
+        
+        # Top-left cell: Logo
+        # Width 55, Height 22
+        pdf.rect(10, 10, 55, 22)
+        logo_path = os.path.join("static", "img", "logo.jpg")
+        if os.path.exists(logo_path):
+            pdf.image(logo_path, 15, 12.5, 45)
+        else:
+            pdf.set_font("helvetica", "B", 18)
+            pdf.set_text_color(79, 70, 229) # Indaco
+            pdf.set_xy(10, 10)
+            pdf.cell(55, 22, "CURIUM", align="C")
+            pdf.set_text_color(0, 0, 0)
+            
+        # Top-right cell: Title
+        # Width 135, Height 22
+        pdf.rect(65, 10, 135, 22)
+        pdf.set_xy(65, 10)
+        pdf.set_font("helvetica", size=9)
+        pdf.cell(135, 7, "  Titolo:", align="L")
+        
+        pdf.set_font("helvetica", "B", 13)
+        pdf.set_xy(65, 17)
+        pdf.cell(135, 10, "RICHIESTA D'ANALISI", align="C")
+        
+        # Row 2 (SOP section below logo and title):
+        # Column 1 (SOP): width 55, height 12
+        pdf.rect(10, 32, 55, 12)
+        pdf.set_xy(10, 32)
+        pdf.set_font("helvetica", size=8)
+        pdf.cell(55, 5, " SOP DI RIFERIMENTO:", ln=True)
+        pdf.set_font("helvetica", "B", 9)
+        pdf.set_x(10)
+        pdf.cell(55, 6, " UDN-PRD-001")
+        
+        # Column 2 (Revisione): width 40, height 12
+        pdf.rect(65, 32, 40, 12)
+        pdf.set_xy(65, 32)
+        pdf.set_font("helvetica", size=9)
+        pdf.cell(40, 12, "Revisione: 11", align="C")
+        
+        # Column 3 (Pagina): width 95, height 12
+        pdf.rect(105, 32, 95, 12)
+        pdf.set_xy(105, 32)
+        pdf.set_font("helvetica", size=9)
+        pdf.cell(95, 12, "Pagina: 1 di 1", align="C")
+        
+        # --- TESTO INTRODUTTIVO ---
+        pdf.set_xy(10, 52)
+        pdf.set_font("helvetica", "B", 10.5)
+        testo_intro = "Si richiede l'esecuzione dei controlli sui seguenti materiali posti in stato di QUARANTENA"
+        pdf.cell(190, 8, clean_pdf_string(testo_intro), align="C")
+        
+        pdf.ln(12)
+        
+        # --- TABELLA DATI ---
+        # Colonne: Materiale (45), N° lotto interno (25), Nome fornitore (30), N° lotto fornitore (30), Data di arrivo (20), Quantità (20), Data di QC (20)
+        # Sum = 190
+        widths = [45, 25, 30, 30, 20, 20, 20]
+        headers = ["Materiale", "N. lotto interno", "Nome fornitore", "N. lotto fornitore", "Data di arrivo", "Quantita", "Data di QC"]
+        
+        # Scrittura intestazione tabella
+        pdf.set_font("helvetica", "B", 9)
+        pdf.set_fill_color(240, 240, 240)
+        for w, h_text in zip(widths, headers):
+            pdf.cell(w, 10, clean_pdf_string(h_text), border=1, align="C", fill=True)
+        pdf.ln()
+        
+        pdf.set_font("helvetica", size=8.5)
+        today_fmt = datetime.now().strftime('%d/%m/%Y')
+        for lot in lotti:
+            # Formatta la data di arrivo da YYYY-MM-DD a DD/MM/YYYY
+            data_arr = lot.get('data_arrivo') or ""
+            try:
+                dt = datetime.strptime(data_arr, '%Y-%m-%d')
+                data_arr_fmt = dt.strftime('%d/%m/%Y')
+            except:
+                data_arr_fmt = data_arr
+                
+            qnt_val = lot.get('qnt_arrivata') or ""
+            um = lot.get('unita_misura') or ""
+            qnt_str = f"{qnt_val} {um}".strip()
+            
+            # Troncamento per sicurezza layout
+            materia_nome = lot.get('nome_mp') or ""
+            if len(materia_nome) > 26:
+                materia_nome = materia_nome[:23] + "..."
+                
+            forn_nome = lot.get('fornitore') or ""
+            if len(forn_nome) > 17:
+                forn_nome = forn_nome[:14] + "..."
+                
+            lotto_forn_val = lot.get('lotto_fornitore') or ""
+            if len(lotto_forn_val) > 18:
+                lotto_forn_val = lotto_forn_val[:15] + "..."
+            
+            # Scrittura dei campi
+            pdf.cell(45, 8, clean_pdf_string(materia_nome), border=1)
+            pdf.cell(25, 8, clean_pdf_string(lot.get('lotto_interno') or ""), border=1, align="C")
+            pdf.cell(30, 8, clean_pdf_string(forn_nome), border=1)
+            pdf.cell(30, 8, clean_pdf_string(lotto_forn_val), border=1, align="C")
+            pdf.cell(20, 8, clean_pdf_string(data_arr_fmt), border=1, align="C")
+            pdf.cell(20, 8, clean_pdf_string(qnt_str), border=1, align="C")
+            pdf.cell(20, 8, clean_pdf_string(today_fmt), border=1, align="C")
+            pdf.ln()
+            
+        # Salvataggio PDF
+        pdf.output(filepath)
+        
+        # --- AGGIORNAMENTO STATO LOTTI COINVOLTI & AUDIT ---
+        today_iso = datetime.now().strftime('%Y-%m-%d')
+        
+        for lot in lotti:
+            lotto_interno = lot['lotto_interno']
+            
+            # Recupera il vecchio valore per l'audit
+            old_row = conn.execute("SELECT * FROM Lotti_Interni WHERE lotto_interno = ?", (lotto_interno,)).fetchone()
+            old_val = dict(old_row) if old_row else None
+            
+            # Aggiorna
+            conn.execute('''
+                UPDATE Lotti_Interni
+                SET data_consegna_qc = ?, qc_attesa = 'NO'
+                WHERE lotto_interno = ?
+            ''', (today_iso, lotto_interno))
+            
+            new_val = dict(old_val) if old_val else {}
+            new_val['data_consegna_qc'] = today_iso
+            new_val['qc_attesa'] = 'NO'
+            
+            log_audit(
+                azione="STAMPA_RICHIESTA_QC",
+                tabella_interessata="Lotti_Interni",
+                operatore="Sistema",
+                vecchio_valore=old_val,
+                nuovo_valore=new_val,
+                conn=conn
+            )
+            
+        conn.commit()
+        return {'success': True, 'filename': filename}
+        
     except Exception as e:
         return {'success': False, 'message': str(e)}, 500
     finally:
@@ -1400,7 +1940,9 @@ def save_picking_pdf():
         items = data.get('items', [])
 
         # Directory di salvataggio
-        save_dir = r"D:\python\Gestore-Lab\picking list"
+        save_dir = PICKING_LIST_DIR
+        if not os.path.isabs(save_dir):
+            save_dir = os.path.join(app.root_path, save_dir)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
 
@@ -1522,5 +2064,563 @@ def audit_trail():
     return render_template('audit_trail.html', audit_records=audit_records)
 
 
+@app.route('/nuova_etichetta')
+def nuova_etichetta():
+    conn = get_db_connection()
+    try:
+        # Recupera tutti i lotti registrati (non chiusi) associandoli ai dettagli della materia prima
+        lotti_rows = conn.execute('''
+            SELECT L.lotto_interno, L.data_arrivo, L.lotto_fornitore, L.fornitore, L.data_scadenza, L.qnt_arrivata, L.giacenza, L.data_approvazione,
+                   L.data_consegna_qc, L.appr,
+                   M.codice as codice_mp, M.nome_mp, M.unita_misura
+            FROM Lotti_Interni L
+            JOIN Elenco_MP M ON L.codice_mp = M.codice
+            WHERE (L.chiuso IS NULL OR (L.chiuso != 'SI' AND L.chiuso != 'X'))
+            ORDER BY L.data_arrivo DESC, L.lotto_interno DESC
+        ''').fetchall()
+        lotti = [dict(row) for row in lotti_rows]
+
+        # Recupera lo stato delle etichette già stampate per ciascun lotto
+        printed_rows = conn.execute('SELECT lotto_interno, tipo_stampa FROM Storico_Etichette').fetchall()
+        printed_map = {}
+        for row in printed_rows:
+            lotto = row['lotto_interno']
+            tipo = row['tipo_stampa']
+            if lotto not in printed_map:
+                printed_map[lotto] = set()
+            printed_map[lotto].add(tipo)
+
+        for lot in lotti:
+            lotto_id = lot['lotto_interno']
+            lot['printed_bianco'] = 'BIANCO' in printed_map.get(lotto_id, set())
+            lot['printed_verde'] = 'VERDE' in printed_map.get(lotto_id, set())
+
+    except Exception as e:
+        print(f"Errore nel recupero dei lotti per le etichette: {e}")
+        lotti = []
+    finally:
+        conn.close()
+    
+    return render_template('nuova_etichetta.html', lotti=lotti)
+
+
+
+@app.route('/storico_etichetta')
+def storico_etichetta():
+    conn = get_db_connection()
+    try:
+        # Recupera lo storico delle etichette facendo un LEFT JOIN con Lotti_Interni
+        # per ricavare i dettagli supplementari utili ad una ristampa fedele dell'etichetta verde.
+        rows = conn.execute('''
+            SELECT S.id, S.data_ora, S.lotto_interno, S.codice_mp, S.nome_mp, S.data_arrivo, S.quantita, S.tipo_stampa, S.operatore,
+                   L.lotto_fornitore, L.data_scadenza, L.data_approvazione
+            FROM Storico_Etichette S
+            LEFT JOIN Lotti_Interni L ON S.lotto_interno = L.lotto_interno
+            ORDER BY S.id DESC
+        ''').fetchall()
+        etichette = [dict(row) for row in rows]
+    except Exception as e:
+        print(f"Errore nel recupero dello storico etichette: {e}")
+        etichette = []
+    finally:
+        conn.close()
+    return render_template('storico_etichetta.html', etichette=etichette)
+
+
+@app.route('/api/salva_etichetta', methods=['POST'])
+def api_salva_etichetta():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'Dati mancanti'}), 400
+            
+        lotto_interno = data.get('lotto_interno')
+        nome_mp = data.get('nome_mp')
+        codice_mp = data.get('codice_mp')
+        data_arrivo = data.get('data_arrivo')
+        quantita = data.get('quantita')
+        tipo_stampa = data.get('tipo_stampa', 'GIALLO')
+        operatore = "Sistema"
+        
+        if not lotto_interno or not nome_mp:
+            return jsonify({'success': False, 'message': 'Lotto interno e nome prodotto obbligatori'}), 400
+            
+        data_ora = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+        
+        conn = get_db_connection()
+        
+        # Prevenzione dei duplicati: verifica se l'etichetta dello stesso tipo per lo stesso lotto è già presente
+        existing = conn.execute('''
+            SELECT 1 FROM Storico_Etichette 
+            WHERE lotto_interno = ? AND tipo_stampa = ?
+        ''', (lotto_interno, tipo_stampa)).fetchone()
+        
+        if existing:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Un\'etichetta di questo tipo è già stata stampata per questo lotto.'}), 400
+            
+        # Convalida dei vincoli per la generazione dell'etichetta VERDE
+        if tipo_stampa == 'VERDE':
+            # 1. L'etichetta BIANCO deve essere già stata generata
+            bianca_exists = conn.execute('''
+                SELECT 1 FROM Storico_Etichette
+                WHERE lotto_interno = ? AND tipo_stampa = 'BIANCO'
+            ''', (lotto_interno,)).fetchone()
+            if not bianca_exists:
+                conn.close()
+                return jsonify({'success': False, 'message': "Impossibile stampare l'etichetta verde se l'etichetta bianca non è stata ancora generata."}), 400
+                
+            # 2. QC impostato e Approvazione su OK
+            lot_info = conn.execute('''
+                SELECT data_consegna_qc, appr FROM Lotti_Interni
+                WHERE lotto_interno = ?
+            ''', (lotto_interno,)).fetchone()
+            if not lot_info:
+                conn.close()
+                return jsonify({'success': False, 'message': "Lotto non trovato."}), 404
+                
+            data_qc = lot_info['data_consegna_qc']
+            appr_val = lot_info['appr']
+            
+            if not data_qc or data_qc == '-':
+                conn.close()
+                return jsonify({'success': False, 'message': "Impossibile stampare l'etichetta verde se il QC non è ancora stato impostato (data consegna QC mancante)."}), 400
+                
+            if not appr_val or appr_val.upper() != 'OK':
+                conn.close()
+                return jsonify({'success': False, 'message': "Impossibile stampare l'etichetta verde se il lotto non è stato ancora approvato (Appr. deve essere OK)."}), 400
+            
+        conn.execute('''
+            INSERT INTO Storico_Etichette (data_ora, lotto_interno, codice_mp, nome_mp, data_arrivo, quantita, tipo_stampa, operatore)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (data_ora, lotto_interno, codice_mp, nome_mp, data_arrivo, quantita, tipo_stampa, operatore))
+        
+        if tipo_stampa == 'VERDE':
+            conn.execute('''
+                UPDATE Lotti_Interni
+                SET etich = 'OK'
+                WHERE lotto_interno = ?
+            ''', (lotto_interno,))
+            
+        log_audit(
+            azione=f"Generata Etichetta ({tipo_stampa})",
+            tabella_interessata="Storico_Etichette",
+            operatore=operatore,
+            vecchio_valore=None,
+            nuovo_valore={
+                'lotto_interno': lotto_interno,
+                'nome_mp': nome_mp,
+                'codice_mp': codice_mp,
+                'tipo_stampa': tipo_stampa
+            },
+            conn=conn
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Etichetta salvata nello storico'})
+    except Exception as e:
+        print(f"Errore durante il salvataggio dell'etichetta: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/lotto_etichette_timestamps/<path:lotto_interno>')
+def api_lotto_etichette_timestamps(lotto_interno):
+    conn = get_db_connection()
+    try:
+        rows = conn.execute('''
+            SELECT tipo_stampa, data_ora 
+            FROM Storico_Etichette 
+            WHERE lotto_interno = ?
+            ORDER BY id ASC
+        ''', (lotto_interno,)).fetchall()
+        
+        timestamps = {
+            'BIANCO': None,
+            'VERDE': None
+        }
+        for row in rows:
+            tipo = row['tipo_stampa']
+            if tipo in timestamps:
+                if not timestamps[tipo]:
+                    timestamps[tipo] = row['data_ora']
+                    
+        return jsonify({
+            'success': True,
+            'lotto_interno': lotto_interno,
+            'bianco': timestamps['BIANCO'],
+            'verde': timestamps['VERDE']
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/spegni', methods=['POST'])
+def api_spegni():
+    import threading
+    import time
+    app.logger.warning("Richiesta di spegnimento dell'applicazione Flask ricevuta ed in fase di elaborazione...")
+    def kill_server():
+        time.sleep(1.0)
+        os._exit(0)
+    threading.Thread(target=kill_server).start()
+    return jsonify({'success': True, 'message': 'Arresto del server in corso... Puoi chiudere questa finestra.'})
+
+
+@app.route('/settings')
+def settings():
+    import glob
+    import re
+    backup_dir = BACKUP_DIR
+    if not os.path.exists(backup_dir):
+        try:
+            os.makedirs(backup_dir)
+        except Exception as e:
+            app.logger.error(f"Errore creazione cartella backup: {e}", exc_info=True)
+        
+    backup_files = glob.glob(os.path.join(backup_dir, "*.db"))
+    backups_data = []
+    
+    for filepath in backup_files:
+        filename = os.path.basename(filepath)
+        try:
+            size_bytes = os.path.getsize(filepath)
+            size_kb = round(size_bytes / 1024, 2)
+        except Exception:
+            size_kb = 0.0
+        
+        # Tipo di backup
+        if "emergenza" in filename or "pre_ripristino" in filename:
+            tipo = "Emergenza Pre-Ripristino"
+        elif "estemporaneo" in filename or "manuale" in filename or "richiesta" in filename:
+            tipo = "Estemporaneo da Operatore"
+        elif "backup" in filename:
+            tipo = "Automatico Programmato"
+        else:
+            tipo = "Estemporaneo da Operatore"
+            
+        # Parse timestamp from filename
+        match = re.search(r'(\d{8}_\d{6})', filename)
+        dt = None
+        if match:
+            ts_str = match.group(1)
+            try:
+                dt = datetime.strptime(ts_str, '%Y%m%d_%H%M%S')
+            except ValueError:
+                pass
+        
+        if dt is None:
+            try:
+                mtime = os.path.getmtime(filepath)
+                dt = datetime.fromtimestamp(mtime)
+            except Exception:
+                dt = datetime.now()
+            
+        formatted_date = dt.strftime('%d-%m-%Y')
+        formatted_time = dt.strftime('%H:%M:%S')
+        
+        backups_data.append({
+            'filename': filename,
+            'size_kb': size_kb,
+            'tipo': tipo,
+            'data': formatted_date,
+            'ora': formatted_time,
+            'datetime_obj': dt
+        })
+        
+    # Ordinamento dal più recente al più vecchio
+    backups_data.sort(key=lambda x: x['datetime_obj'], reverse=True)
+    
+    return render_template('settings.html', backups=backups_data)
+
+
+@app.route('/settings/backup/create', methods=['POST'])
+def settings_backup_create():
+    import shutil
+    operatore = request.form.get('operatore', '').strip()
+    if not operatore:
+        flash("Inserire il nome dell'operatore per procedere.", "error")
+        return redirect(url_for('settings'))
+        
+    src_db = DB_PATH
+    backup_dir = BACKUP_DIR
+    if not os.path.exists(backup_dir):
+        try:
+            os.makedirs(backup_dir)
+        except Exception as e:
+            app.logger.error(f"Impossibile creare la cartella di backup: {e}", exc_info=True)
+            flash(f"Impossibile creare la cartella di backup: {e}", "error")
+            return redirect(url_for('settings'))
+        
+    if not os.path.exists(src_db):
+        app.logger.error(f"Errore creazione backup: file database attivo non trovato a percorso '{src_db}'")
+        flash("Errore: database.db attivo non trovato!", "error")
+        return redirect(url_for('settings'))
+        
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"database_estemporaneo_{timestamp}.db"
+    dst_db = os.path.join(backup_dir, filename)
+    
+    try:
+        shutil.copy2(src_db, dst_db)
+        app.logger.info(f"Backup manuale '{filename}' creato con successo dall'operatore '{operatore}'.")
+        # Rotazione per mantenere max 30 backup standard
+        esegui_rotazione_backups()
+        
+        # Log nell'audit trail
+        log_audit(
+            azione="Creazione Backup Manuale", 
+            tabella_interessata="Database", 
+            operatore=operatore, 
+            nuovo_valore=filename
+        )
+        
+        flash(f"Backup manuale creato con successo: {filename}", "success")
+    except Exception as e:
+        app.logger.error(f"Errore durante la creazione del backup manuale da '{operatore}': {e}", exc_info=True)
+        flash(f"Errore durante la creazione del backup: {e}", "error")
+        
+    return redirect(url_for('settings'))
+
+
+@app.route('/settings/backup/restore', methods=['POST'])
+def settings_backup_restore():
+    import shutil
+    filename = request.form.get('filename', '').strip()
+    conferma = request.form.get('conferma', '').strip()
+    operatore = request.form.get('operatore', '').strip()
+    
+    if not filename:
+        flash("Nessun file di backup specificato.", "error")
+        return redirect(url_for('settings'))
+        
+    if conferma != "RIPRISTINA":
+        flash("Conferma non valida. Digitare 'RIPRISTINA' per procedere.", "error")
+        return redirect(url_for('settings'))
+        
+    if not operatore:
+        flash("Nome dell'operatore richiesto per procedere.", "error")
+        return redirect(url_for('settings'))
+        
+    # Impedisci directory traversal e convalida percorso file
+    filename = os.path.basename(filename)
+    backup_path = os.path.join(BACKUP_DIR, filename)
+    if not os.path.exists(backup_path):
+        app.logger.error(f"Tentato ripristino di file inesistente '{filename}' dall'operatore '{operatore}'")
+        flash("Il file di backup selezionato non esiste.", "error")
+        return redirect(url_for('settings'))
+        
+    active_db_path = DB_PATH
+    
+    # 1. Backup Preventivo Immediato di Emergenza
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    emergenza_filename = f"database_emergenza_pre_ripristino_{timestamp}.db"
+    emergenza_path = os.path.join(BACKUP_DIR, emergenza_filename)
+    
+    try:
+        if os.path.exists(active_db_path):
+            shutil.copy2(active_db_path, emergenza_path)
+            app.logger.warning(f"Inizio ripristino database. Generato backup preventivo di emergenza '{emergenza_filename}'.")
+        else:
+            app.logger.warning("Attenzione: database attivo non trovato per backup preventivo di emergenza. Procedo.")
+    except Exception as e:
+        app.logger.error(f"Errore critico nella creazione del backup preventivo di emergenza: {e}", exc_info=True)
+        flash(f"Impossibile creare il backup di emergenza preventiva. Operazione annullata. Dettaglio: {e}", "error")
+        return redirect(url_for('settings'))
+        
+    # 2. Ripristino Sicuro tramite SQLite Online Backup API
+    conn_src = None
+    conn_dst = None
+    try:
+        conn_src = sqlite3.connect(backup_path)
+        conn_dst = sqlite3.connect(active_db_path)
+        # Copia atomica a livello di pagine SQLite
+        conn_src.backup(conn_dst)
+        
+        conn_src.close()
+        conn_dst.close()
+        
+        app.logger.warning(f"Ripristino database 'a caldo' eseguito con successo da '{filename}' dall'operatore '{operatore}'.")
+        
+        # Scrivi log nell'Audit Trail (sul DB appena ripristinato)
+        log_audit(
+            azione="Ripristino Database 'a Caldo'", 
+            tabella_interessata="Database", 
+            operatore=operatore, 
+            vecchio_valore=f"Ripristinato da file: {filename}",
+            nuovo_valore=f"Emergenza generata: {emergenza_filename}"
+        )
+        
+        flash(f"Database ripristinato con successo da '{filename}'! Creato backup di emergenza preventiva '{emergenza_filename}'.", "success")
+    except Exception as e:
+        app.logger.error(f"Errore critico durante il ripristino 'a caldo' del database da '{filename}': {e}", exc_info=True)
+        flash(f"Errore critico durante il ripristino 'a caldo' del database: {e}", "error")
+        
+    return redirect(url_for('settings'))
+
+
+@app.route('/settings/backup/download/<filename>')
+def settings_backup_download(filename):
+    # Prevenzione Directory Traversal
+    filename = os.path.basename(filename)
+    backup_dir = os.path.abspath(BACKUP_DIR)
+    filepath = os.path.join(backup_dir, filename)
+    if not os.path.exists(filepath):
+        app.logger.error(f"Richiesto download di file inesistente '{filename}'")
+        flash("File di backup non trovato.", "error")
+        return redirect(url_for('settings'))
+        
+    from flask import send_from_directory
+    app.logger.info(f"Download avviato per il file di backup: {filename}")
+    return send_from_directory(backup_dir, filename, as_attachment=True)
+
+
+@app.route('/settings/logs')
+def settings_logs():
+    if not os.path.exists(resolved_log_path):
+        return jsonify({'success': True, 'logs': 'Nessun log presente.'})
+    try:
+        with open(resolved_log_path, 'r', encoding='utf-8', errors='ignore') as f:
+            lines = f.readlines()
+            last_lines = lines[-150:]
+            return jsonify({'success': True, 'logs': ''.join(last_lines)})
+    except Exception as e:
+        app.logger.error(f"Errore durante la lettura del file di log: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/settings/logs/download')
+def settings_logs_download():
+    directory = os.path.dirname(resolved_log_path)
+    filename = os.path.basename(resolved_log_path)
+    if not os.path.exists(resolved_log_path):
+        flash("File di log di sistema non ancora generato.", "error")
+        return redirect(url_for('settings'))
+    app.logger.info("Download avviato per il file di log di sistema completo app.log")
+    from flask import send_from_directory
+    return send_from_directory(directory, filename, as_attachment=True)
+
+
+def esegui_rotazione_backups():
+    """
+    Mantiene solo gli ultimi 30 file di backup più recenti ordinati per timestamp nel nome file.
+    """
+    import glob
+    try:
+        backup_dir = BACKUP_DIR
+        if not os.path.exists(backup_dir):
+            return
+            
+        # Trova tutti i backup .db
+        backups = glob.glob(os.path.join(backup_dir, "database_backup_*.db"))
+        # Ordinamento alfabetico (grazie a YYYYMMDD_HHMMSS equivale a cronologico)
+        backups.sort()
+        
+        # Se superano i 30, eliminiamo quelli in più a partire dal più vecchio
+        if len(backups) > 30:
+            to_delete = backups[:-30]
+            for file_path in to_delete:
+                try:
+                    os.remove(file_path)
+                    app.logger.info(f"Rotazione backup: rimosso vecchio file {file_path}")
+                except Exception as ex:
+                    app.logger.error(f"Errore durante l'eliminazione del vecchio backup {file_path}: {ex}")
+            app.logger.info(f"Rotazione backup eseguita. Rimossi {len(to_delete)} backup in eccesso.")
+    except Exception as e:
+        app.logger.error(f"Errore critico durante la rotazione dei backup: {e}", exc_info=True)
+
+
+def ciclo_backup_background():
+    """
+    Ciclo continuo in background per garantire almeno un backup al giorno.
+    Controlla periodicamente (ogni ora) e genera un backup se manca quello per il giorno corrente.
+    """
+    import shutil
+    import glob
+    import time
+    
+    # Ritardo iniziale all'avvio per non rallentare il bootstrap iniziale di Flask
+    time.sleep(5)
+    
+    # Esegui subito una rotazione iniziale per pulire la cartella se piena al boot
+    esegui_rotazione_backups()
+    
+    backup_dir = BACKUP_DIR
+    if not os.path.exists(backup_dir):
+        try:
+            os.makedirs(backup_dir)
+        except Exception as e:
+            app.logger.error(f"[BACKUP AUTOMATICO] Impossibile creare la cartella di backup: {e}", exc_info=True)
+            return
+
+    while True:
+        try:
+            today_str = datetime.now().strftime('%Y%m%d')
+            
+            # Cerca se esiste già un backup per oggi
+            today_backups = glob.glob(os.path.join(backup_dir, f"database_backup_{today_str}_*.db"))
+            if not today_backups:
+                src_db = DB_PATH
+                if os.path.exists(src_db):
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    dst_db = os.path.join(backup_dir, f"database_backup_{timestamp}.db")
+                    shutil.copy2(src_db, dst_db)
+                    app.logger.info(f"Backup automatico programmato creato con successo: database_backup_{timestamp}.db")
+                    
+                    # Riapri la rotazione per mantenere solo 30 file
+                    esegui_rotazione_backups()
+                else:
+                    app.logger.warning("[BACKUP AUTOMATICO] Attenzione: file database attivo non trovato!")
+        except Exception as e:
+            app.logger.error(f"[BACKUP AUTOMATICO] Errore nel ciclo di background: {e}", exc_info=True)
+            
+        # Attendi un'ora (3600 secondi) prima del controllo successivo
+        time.sleep(3600)
+
+
+def avvia_schedulatore_backup():
+    """
+    Avvia il thread demone per il backup in background.
+    Se Flask è in modalità debug, assicura di avviarsi una sola volta.
+    """
+    import threading
+    # Avvia solo sul processo principale se in modalità debug (Werkzeug reloader)
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
+        t = threading.Thread(target=ciclo_backup_background, daemon=True)
+        t.start()
+        app.logger.info("Thread di controllo e backup automatico in background avviato con successo.")
+
+
+# Avvio dello schedulatore all'importazione/inizializzazione del modulo
+avvia_schedulatore_backup()
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    import socket
+    def get_local_ip():
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except Exception:
+            return "127.0.0.1"
+            
+    flask_host = os.getenv("FLASK_HOST", "0.0.0.0")
+    flask_port = int(os.getenv("FLASK_PORT", "5000"))
+    flask_debug = os.getenv("FLASK_DEBUG", "True").lower() in ("true", "1", "t", "y", "yes")
+
+    local_ip = get_local_ip()
+    print("\n" + "="*70)
+    print(f"  * SERVER APERTO ALLA RETE LOCALE (LAN) *")
+    print(f"  Puoi accedere all'applicazione da smartphone, tablet o altri PC:")
+    print(f"  -> http://{local_ip}:{flask_port}")
+    print("="*70 + "\n")
+    
+    app.logger.info(f"Server Web Flask avviato ed in ascolto su http://{local_ip}:{flask_port} (Porta LAN: {flask_port})")
+    
+    app.run(host=flask_host, port=flask_port, debug=flask_debug)
+

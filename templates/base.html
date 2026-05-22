@@ -67,6 +67,7 @@
                 opacity: 0;
                 transform: translateY(-8px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -93,7 +94,104 @@
         .dropdown-content a:hover {
             background-color: rgba(255, 255, 255, 0.04);
             color: white;
-            padding-left: 1.4rem; /* Micro-animazione spostamento */
+            padding-left: 1.4rem;
+            /* Micro-animazione spostamento */
+        }
+
+        /* Stile Bottone Spegnimento nel Dropdown */
+        .dropdown-content a.btn-shutdown {
+            color: #fca5a5 !important;
+            font-weight: 600;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .dropdown-content a.btn-shutdown:hover {
+            color: #ef4444 !important;
+            background-color: rgba(239, 68, 68, 0.08) !important;
+        }
+
+        /* Stile overlay spegnimento */
+        .shutdown-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(10, 15, 26, 0.96);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 99999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .shutdown-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .shutdown-card {
+            background: rgba(17, 23, 38, 0.6);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            border-radius: 1.5rem;
+            padding: 3rem;
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+            transform: scale(0.9);
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .shutdown-overlay.active .shutdown-card {
+            transform: scale(1);
+        }
+
+        .shutdown-icon {
+            font-size: 4.5rem;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+            animation: pulseRed 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseRed {
+
+            0%,
+            100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.4));
+            }
+
+            50% {
+                transform: scale(1.08);
+                filter: drop-shadow(0 0 25px rgba(239, 68, 68, 0.8));
+            }
+        }
+
+        .shutdown-title {
+            color: #ef4444;
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            letter-spacing: -0.025em;
+        }
+
+        .shutdown-text {
+            color: var(--text-pale);
+            font-size: 1.05rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .shutdown-subtext {
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 1.25rem;
         }
     </style>
 </head>
@@ -107,9 +205,12 @@
 
             <div class="header-right">
                 <div class="dropdown">
-                    <button class="btn btn-settings" id="settingsBtn" onclick="toggleSettingsDropdown()">⚙️ Impostazioni</button>
+                    <button class="btn btn-settings" id="settingsBtn" onclick="toggleSettingsDropdown()">⚙️
+                        Impostazioni</button>
                     <div class="dropdown-content" id="settingsDropdown">
+                        <a href="{{ url_for('settings') }}">⚙️ Backup</a>
                         <a href="{{ url_for('audit_trail') }}">📜 Storico Operazioni</a>
+                        <a href="#" onclick="shutdownServer(event)" class="btn-shutdown">🛑 Spegni Applicazione</a>
                     </div>
                 </div>
             </div>
@@ -130,13 +231,28 @@
         </main>
     </div>
 
+    <!-- Overlay di spegnimento premium -->
+    <div class="shutdown-overlay" id="shutdownOverlay">
+        <div class="shutdown-card">
+            <div class="shutdown-icon">🛑</div>
+            <div class="shutdown-title">Applicazione Spenta</div>
+            <div class="shutdown-text">
+                Il server di <strong>Gestore-Lab</strong> è stato arrestato correttamente.
+                <br>Puoi chiudere questa scheda del browser in tutta sicurezza.
+            </div>
+            <div class="shutdown-subtext">
+                Tutte le sessioni attive e i processi in background sono stati terminati.
+            </div>
+        </div>
+    </div>
+
     <script>
         function toggleSettingsDropdown() {
             document.getElementById("settingsDropdown").classList.toggle("show");
         }
-        
+
         // Chiude il dropdown se l'utente clicca fuori
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             if (!event.target.matches('.btn-settings') && !event.target.closest('.dropdown')) {
                 var dropdowns = document.getElementsByClassName("dropdown-content");
                 for (var i = 0; i < dropdowns.length; i++) {
@@ -145,6 +261,34 @@
                         openDropdown.classList.remove('show');
                     }
                 }
+            }
+        }
+
+        // Funzione per spegnere l'applicazione con feedback visivo premium
+        function shutdownServer(event) {
+            event.preventDefault();
+            if (confirm("Sei sicuro di voler spegnere l'applicazione? Il server Flask verrà arrestato e dovrai riavviarlo tramite il launcher.")) {
+                // Mostra overlay di spegnimento
+                const overlay = document.getElementById("shutdownOverlay");
+                overlay.classList.add("active");
+
+                // Chiudi dropdown delle impostazioni
+                document.getElementById("settingsDropdown").classList.remove("show");
+
+                // Effettua la chiamata POST all'endpoint di spegnimento
+                fetch('/api/spegni', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Spegnimento riuscito:", data);
+                    })
+                    .catch(error => {
+                        console.log("Il server è andato offline come previsto.");
+                    });
             }
         }
     </script>

@@ -210,7 +210,23 @@ header {
     filter: drop-shadow(0 0 10px rgba(251, 146, 60, 0.3));
 }
 
+.card-etichette {
+    border-color: rgba(16, 185, 129, 0.4);
+    background: linear-gradient(145deg, var(--card-bg) 0%, rgba(16, 185, 129, 0.02) 100%);
+}
+
+.card-etichette:hover {
+    border-color: #10b981;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 25px rgba(16, 185, 129, 0.25);
+    background: linear-gradient(145deg, var(--card-bg) 0%, rgba(16, 185, 129, 0.08) 100%);
+}
+
+.card-etichette .card-icon {
+    filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.3));
+}
+
 /* Tabelle */
+
 .table-container {
     background: var(--card-bg);
     border-radius: 1.25rem;

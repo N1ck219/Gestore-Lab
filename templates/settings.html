@@ -1,0 +1,415 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
+
+    <!-- Intestazione -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <div>
+            <h2 style="font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; color: white;">⚙️ Backup</h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem;">Gestione del sistema,
+                salvataggio dei dati e ripristino sicuro "a caldo" (GMP/GLP Compliance)</p>
+        </div>
+    </div>
+
+    <!-- Sezione superiore: Info e Backup Manuale -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; flex-wrap: wrap;">
+
+        <!-- Card Info Sistema -->
+        <div
+            style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 1rem; backdrop-filter: blur(10px); display: flex; flex-direction: column; justify-content: space-between; min-height: 200px;">
+            <div>
+                <h3
+                    style="color: white; font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                    🛡️ Stato Protezione Dati
+                </h3>
+                <p style="color: var(--text-pale); font-size: 0.9rem; line-height: 1.6; margin-bottom: 1rem;">
+                    Il sistema esegue automaticamente un backup giornaliero in background per prevenire la perdita
+                    accidentale di dati.
+                    Fino a <strong>30 copie storiche</strong> vengono preservate automaticamente in rotazione.
+                </p>
+            </div>
+            <div
+                style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 0.75rem; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span
+                    style="width: 10px; height: 10px; background: #10b981; border-radius: 50%; display: inline-block; box-shadow: 0 0 10px #10b981;"></span>
+                <span style="color: #34d399; font-weight: 600; font-size: 0.85rem;">Schedulatore Backup Attivo in
+                    Background</span>
+            </div>
+        </div>
+
+        <!-- Card Backup Manuale -->
+        <div
+            style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 1rem; backdrop-filter: blur(10px); display: flex; flex-direction: column; justify-content: space-between; min-height: 200px;">
+            <div>
+                <h3
+                    style="color: white; font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                    💾 Forza Creazione Backup Istantaneo
+                </h3>
+                <p style="color: var(--text-pale); font-size: 0.9rem; line-height: 1.6; margin-bottom: 1rem;">
+                    Crea immediatamente un punto di ripristino manuale dell'intero database attivo. Questa operazione
+                    verrà registrata nel log di tracciabilità.
+                </p>
+            </div>
+            <form action="{{ url_for('settings_backup_create') }}" method="POST"
+                style="display: flex; gap: 0.75rem; align-items: flex-end; width: 100%;">
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 0.4rem;">
+                    <label for="operatore_manuale"
+                        style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Nome
+                        Operatore</label>
+                    <input type="text" id="operatore_manuale" name="operatore" required placeholder="Esegui firma..."
+                        style="padding: 0.65rem 1rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white; border-radius: 0.5rem; font-size: 0.9rem;">
+                </div>
+                <button type="submit" class="btn btn-primary"
+                    style="padding: 0.65rem 1.25rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 0.5rem; background: var(--gradient); border: none; cursor: pointer; color: white; transition: transform 0.2s;"
+                    onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
+                    💾 Crea Backup
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Tabella Backup Disponibili -->
+    <div
+        style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 1rem; overflow: hidden; display: flex; flex-direction: column;">
+        <div
+            style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.01);">
+            <h3
+                style="color: white; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                📁 Registro Storico dei Backup nel Sistema
+            </h3>
+            <span
+                style="font-size: 0.8rem; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 0.25rem 0.75rem; border-radius: 2rem; border: 1px solid rgba(255,255,255,0.05);">
+                {{ backups | length }} File Trovati
+            </span>
+        </div>
+
+        <div class="table-container" style="max-height: 500px; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="width: 14%; text-align: left; padding: 1rem 1.5rem;">Data</th>
+                        <th style="width: 8%; text-align: left; padding: 1rem 1.5rem;">Ora</th>
+                        <th style="width: 25%; text-align: left; padding: 1rem 1.5rem;">Tipo Backup</th>
+                        <th style="width: 10%; text-align: left; padding: 1rem 1.5rem;">Dimensione (KB)</th>
+                        <th style="width: 25%; text-align: left; padding: 1rem 1.5rem;">Nome File</th>
+                        <th style="width: 18%; text-align: center; padding: 1rem 1.5rem;">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if backups %}
+                    {% for backup in backups %}
+                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.03); transition: background 0.2s;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.02)'"
+                        onmouseout="this.style.background='transparent'">
+                        <td style="padding: 1rem 1.5rem; font-weight: 600; color: white; white-space: nowrap;">
+                            {{ backup.data }}
+                        </td>
+                        <td style="padding: 1rem 1.5rem; font-family: monospace; color: var(--text-pale);">
+                            {{ backup.ora }}
+                        </td>
+                        <td style="padding: 1rem 1.5rem;">
+                            {% if backup.tipo == 'Emergenza Pre-Ripristino' %}
+                            <span class="badge"
+                                style="background: rgba(244, 63, 94, 0.12); color: #f43f5e; border-color: rgba(244, 63, 94, 0.3); font-size: 0.75rem; white-space: nowrap;">🚨
+                                Emergenza Pre-Ripristino</span>
+                            {% elif backup.tipo == 'Automatico Programmato' %}
+                            <span class="badge"
+                                style="background: rgba(16, 185, 129, 0.12); color: #34d399; border-color: rgba(16, 185, 129, 0.3); font-size: 0.75rem; white-space: nowrap;">⚡
+                                Programmato</span>
+                            {% else %}
+                            <span class="badge"
+                                style="background: rgba(168, 85, 247, 0.12); color: #c084fc; border-color: rgba(168, 85, 247, 0.3); font-size: 0.75rem; white-space: nowrap;">👤
+                                Estemporaneo da Operatore</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 1rem 1.5rem; font-family: monospace; color: var(--text-pale);">
+                            {{ backup.size_kb }} KB
+                        </td>
+                        <td style="padding: 1rem 1.5rem; font-family: monospace; font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;"
+                            title="{{ backup.filename }}">
+                            {{ backup.filename }}
+                        </td>
+                        <td
+                            style="padding: 1rem 1.5rem; text-align: center; display: flex; justify-content: center; gap: 0.5rem;">
+                            <a href="{{ url_for('settings_backup_download', filename=backup.filename) }}" class="btn"
+                                style="background: rgba(6, 182, 212, 0.12); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.3); padding: 0.4rem 0.8rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem; transition: all 0.2s;"
+                                onmouseover="this.style.background='rgba(6, 182, 212, 0.22)'"
+                                onmouseout="this.style.background='rgba(6, 182, 212, 0.12)'">
+                                📥 Scarica
+                            </a>
+                            <button onclick="openRestoreModal('{{ backup.filename }}')" class="btn"
+                                style="background: rgba(244, 63, 94, 0.12); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); padding: 0.4rem 0.8rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; transition: all 0.2s;"
+                                onmouseover="this.style.background='rgba(244, 63, 94, 0.22)'"
+                                onmouseout="this.style.background='rgba(244, 63, 94, 0.12)'">
+                                🔄 Ripristina
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 4rem 1.5rem;">
+                            <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">📂</div>
+                            Nessun file di backup rilevato nella cartella `database/backups/`.
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Card Console Log di Sistema -->
+    <div
+        style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 1rem; overflow: hidden; display: flex; flex-direction: column;">
+        <div
+            style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.01); flex-wrap: wrap; gap: 0.75rem;">
+            <h3
+                style="color: white; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                📋 Console Log di Sistema
+            </h3>
+            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="auto-refresh-logs" style="width: 15px; height: 15px; border-radius: 0.25rem; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); accent-color: #a855f7;">
+                    Auto-aggiornamento (10s)
+                </label>
+                <button onclick="loadLogs()" class="btn"
+                    style="background: rgba(255, 255, 255, 0.05); color: var(--text-pale); border: 1px solid rgba(255,255,255,0.15); padding: 0.4rem 0.8rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; transition: all 0.2s;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.1)'"
+                    onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+                    🔄 Aggiorna
+                </button>
+                <a href="{{ url_for('settings_logs_download') }}" class="btn"
+                    style="background: rgba(168, 85, 247, 0.12); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); padding: 0.4rem 0.8rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem; transition: all 0.2s;"
+                    onmouseover="this.style.background='rgba(168, 85, 247, 0.22)'"
+                    onmouseout="this.style.background='rgba(168, 85, 247, 0.12)'">
+                    📥 Scarica Log Completo
+                </a>
+            </div>
+        </div>
+
+        <div style="padding: 1.25rem 1.5rem; background: rgba(0,0,0,0.1);">
+            <div style="background: #080c14; border: 1px solid rgba(255,255,255,0.05); border-radius: 0.75rem; overflow: hidden; box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);">
+                <!-- Terminal Header mock -->
+                <div style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444; display: inline-block; opacity: 0.8;"></span>
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background: #fbbf24; display: inline-block; opacity: 0.8;"></span>
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background: #34d399; display: inline-block; opacity: 0.8;"></span>
+                    <span style="font-family: monospace; font-size: 0.7rem; color: var(--text-secondary); margin-left: 0.5rem;">app.log &mdash; Visualizzatore Real-time</span>
+                </div>
+                <pre id="log-console" style="margin: 0; padding: 1rem; font-family: monospace; font-size: 0.8rem; color: #a5f3fc; line-height: 1.6; max-height: 320px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; text-align: left; background: #06090f; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;">In caricamento...</pre>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal di Ripristino a Doppia Conferma -->
+<div id="restoreModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(8, 11, 17, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 10000; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
+    <div
+        style="background: var(--card-bg); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 1.5rem; width: 90%; max-width: 550px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 40px rgba(239, 68, 68, 0.1); transform: scale(0.95); transition: transform 0.3s ease;">
+
+        <!-- Header -->
+        <div
+            style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(239, 68, 68, 0.03);">
+            <h3
+                style="font-size: 1.2rem; color: #f87171; display: flex; align-items: center; gap: 0.5rem; font-weight: 700; margin: 0;">
+                ⚠️ Attenzione: Ripristino Database
+            </h3>
+            <button onclick="closeRestoreModal()"
+                style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.75rem; cursor: pointer; line-height: 1; transition: color 0.2s;"
+                onmouseover="this.style.color='white'"
+                onmouseout="this.style.color='var(--text-secondary)'">&times;</button>
+        </div>
+
+        <form action="{{ url_for('settings_backup_restore') }}" method="POST" id="restoreForm">
+            <!-- Body -->
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+
+                <div
+                    style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 0.75rem; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                    <p style="color: #fca5a5; font-size: 0.9rem; font-weight: 600; margin: 0; line-height: 1.5;">
+                        Stai per sovrascrivere l'intero database attivo con la copia storica selezionata.
+                    </p>
+                    <p style="color: var(--text-pale); font-size: 0.82rem; margin: 0; line-height: 1.4;">
+                        Tutte le modifiche inserite dopo la creazione di questo backup andranno perse. Per sicurezza, il
+                        sistema creerà automaticamente una copia di emergenza preventiva
+                        (<code>database_emergenza_pre_ripristino_*.db</code>) prima di sovrascrivere.
+                    </p>
+                </div>
+
+                <div
+                    style="background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.03); border-radius: 0.75rem; padding: 0.75rem 1rem;">
+                    <span
+                        style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); display: block;">Backup
+                        Selezionato:</span>
+                    <strong id="modalBackupFilename"
+                        style="color: white; font-family: monospace; font-size: 0.85rem; display: block; margin-top: 0.2rem; word-break: break-all;">-</strong>
+                    <input type="hidden" name="filename" id="restoreFilenameInput">
+                </div>
+
+                <!-- Input Operatore -->
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                    <label for="restore_operatore"
+                        style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); display: block;">Nome
+                        Operatore (Firma)</label>
+                    <input type="text" id="restore_operatore" name="operatore" required
+                        placeholder="Esegui firma per autorizzare..."
+                        style="padding: 0.65rem 1rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white; border-radius: 0.5rem; font-size: 0.9rem; width: 100%; box-sizing: border-box;"
+                        onkeyup="checkRestoreValidity()">
+                </div>
+
+                <!-- Doppia Conferma Scritta -->
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                    <label for="restore_conferma"
+                        style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); display: block;">Digitare
+                        la parola di conferma</label>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0 0 0.25rem 0;">Per procedere,
+                        digita la parola <strong>RIPRISTINA</strong> (in lettere maiuscole):</p>
+                    <input type="text" id="restore_conferma" name="conferma" required placeholder="Scrivi RIPRISTINA"
+                        style="padding: 0.65rem 1rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white; border-radius: 0.5rem; font-size: 0.9rem; width: 100%; box-sizing: border-box; font-weight: bold; letter-spacing: 0.1em; text-align: center;"
+                        onkeyup="checkRestoreValidity()">
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div
+                style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.15); display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button type="button" class="btn" onclick="closeRestoreModal()"
+                    style="background: rgba(255,255,255,0.05); color: var(--text-pale); border: 1px solid rgba(255,255,255,0.15); padding: 0.6rem 1.25rem; border-radius: 0.5rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.1)'"
+                    onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+                    Annulla
+                </button>
+                <button type="submit" id="btnConfirmRestore" disabled class="btn"
+                    style="background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.6rem 1.25rem; border-radius: 0.5rem; font-size: 0.9rem; font-weight: 700; cursor: not-allowed; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    🔄 Esegui Ripristino
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+    // --- Gestione della Console Log di Sistema ---
+    let logInterval = null;
+
+    function loadLogs() {
+        const consoleEl = document.getElementById('log-console');
+        if (!consoleEl) return;
+        
+        fetch("{{ url_for('settings_logs') }}")
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    consoleEl.textContent = data.logs || 'Nessuna voce presente nel file di log.';
+                    // Scorrimento automatico verso il basso per mostrare i log più recenti
+                    consoleEl.scrollTop = consoleEl.scrollHeight;
+                } else {
+                    consoleEl.textContent = 'Errore nel caricamento dei log: ' + (data.message || 'Errore sconosciuto');
+                }
+            })
+            .catch(error => {
+                consoleEl.textContent = 'Errore di rete durante il caricamento dei log: ' + error.message;
+            });
+    }
+
+    // Toggle dell'auto-aggiornamento (10 secondi)
+    const autoRefreshCheckbox = document.getElementById('auto-refresh-logs');
+    if (autoRefreshCheckbox) {
+        autoRefreshCheckbox.addEventListener('change', function(e) {
+            if (e.target.checked) {
+                loadLogs(); // Carica subito al momento della spunta
+                logInterval = setInterval(loadLogs, 10000);
+            } else {
+                if (logInterval) {
+                    clearInterval(logInterval);
+                    logInterval = null;
+                }
+            }
+        });
+    }
+
+    // --- Gestione del Modal di Ripristino a Doppia Conferma ---
+    function openRestoreModal(filename) {
+        const modal = document.getElementById('restoreModal');
+        const fileInput = document.getElementById('restoreFilenameInput');
+        const filenameDisplay = document.getElementById('modalBackupFilename');
+
+        fileInput.value = filename;
+        filenameDisplay.innerText = filename;
+
+        // Svuota i campi di input
+        document.getElementById('restore_operatore').value = '';
+        document.getElementById('restore_conferma').value = '';
+        document.getElementById('btnConfirmRestore').disabled = true;
+        document.getElementById('btnConfirmRestore').style.cursor = 'not-allowed';
+        document.getElementById('btnConfirmRestore').style.background = 'rgba(239, 68, 68, 0.1)';
+        document.getElementById('btnConfirmRestore').style.color = '#f87171';
+        document.getElementById('btnConfirmRestore').style.borderColor = 'rgba(239, 68, 68, 0.3)';
+
+        // Mostra modal con transizione fluida
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            modal.style.opacity = '1';
+            modal.querySelector('div').style.transform = 'scale(1)';
+        }, 10);
+    }
+
+    function closeRestoreModal() {
+        const modal = document.getElementById('restoreModal');
+        modal.style.opacity = '0';
+        modal.querySelector('div').style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+
+    function checkRestoreValidity() {
+        const operatore = document.getElementById('restore_operatore').value.trim();
+        const conferma = document.getElementById('restore_conferma').value.trim();
+        const btn = document.getElementById('btnConfirmRestore');
+
+        if (operatore.length > 0 && conferma === 'RIPRISTINA') {
+            btn.disabled = false;
+            btn.style.cursor = 'pointer';
+            btn.style.background = '#ef4444';
+            btn.style.color = 'white';
+            btn.style.borderColor = '#ef4444';
+            btn.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.4)';
+        } else {
+            btn.disabled = true;
+            btn.style.cursor = 'not-allowed';
+            btn.style.background = 'rgba(239, 68, 68, 0.1)';
+            btn.style.color = '#f87171';
+            btn.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            btn.style.boxShadow = 'none';
+        }
+    }
+
+    // Chiudi cliccando all'esterno del modal content
+    document.getElementById('restoreModal').onclick = function (event) {
+        if (event.target === this) {
+            closeRestoreModal();
+        }
+    };
+
+    // Feedback visivo alla sottomissione
+    document.getElementById('restoreForm').onsubmit = function (event) {
+        const btn = document.getElementById('btnConfirmRestore');
+        btn.innerHTML = '🔄 Ripristino in corso...';
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+    };
+
+    // Esegui il caricamento iniziale dei log al caricamento del DOM
+    document.addEventListener('DOMContentLoaded', function() {
+        loadLogs();
+    });
+</script>
+{% endblock %}
