@@ -224,6 +224,12 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Casella "Run in bianco" -->
+        <div style="margin-top: 1rem; display: flex; align-items: center; gap: 0.6rem; background: rgba(255, 255, 255, 0.02); padding: 0.6rem 0.8rem; border-radius: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.05); width: fit-content;">
+            <input type="checkbox" id="run_in_bianco" name="run_in_bianco" style="width: auto !important; height: auto !important; cursor: pointer; transform: scale(1.15);">
+            <label for="run_in_bianco" style="margin-bottom: 0; color: var(--text-primary); font-weight: 600; cursor: pointer; user-select: none; font-size: 0.92rem;">🧪 Run in bianco</label>
+        </div>
     </div>
     
     <!-- SEZIONE MANUALE -->
@@ -394,6 +400,20 @@
 
 <script>
     // --- GESTIONE MODALITÀ ---
+    let currentActiveMode = null;
+    
+    // Ricarica gli articoli del picking se lo stato di "run in bianco" cambia
+    document.addEventListener("DOMContentLoaded", function() {
+        const runInBiancoCheckbox = document.getElementById('run_in_bianco');
+        if (runInBiancoCheckbox) {
+            runInBiancoCheckbox.addEventListener('change', function() {
+                if (currentActiveMode && currentActiveMode !== 'Manuale') {
+                    loadFDGItems(currentActiveMode);
+                }
+            });
+        }
+    });
+
     const modeSearch = document.getElementById('mode_search');
     const modeResults = document.getElementById('modeResults');
     const sectionManual = document.getElementById('section_manual');
@@ -422,6 +442,7 @@
     });
 
     function selectMode(mode) {
+        currentActiveMode = mode;
         if (mode === 'FDG') {
             modeSearch.value = "Picking FDG (Synthera)";
         } else if (mode === 'FDG_TRASIS') {
@@ -531,16 +552,57 @@
                     
                     let qntHtml = `<input type="text" inputmode="decimal" class="fdg-qnt-input" data-codice="${m.codice}" value="${m.qnt || ''}" placeholder="Inserisci" style="width: 80px; padding: 6px; border-radius: 4px; text-align: center; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: white;">`;
                     
-                    // Trova in automatico il lotto più vecchio (primo nella lista) con quantità sufficiente
+                    // Trova in automatico il lotto
                     let selectedLotto = null;
+                    const isRunInBianco = document.getElementById('run_in_bianco').checked;
                     if (m.lotti && m.lotti.length > 0) {
                         const standardQnt = parseFloat(m.qnt) || 0.0;
-                        for (let i = 0; i < m.lotti.length; i++) {
-                            const l = m.lotti[i];
-                            const giac = parseFloat(l.giacenza) || 0.0;
-                            if (giac >= standardQnt) {
-                                selectedLotto = l;
-                                break;
+                        
+                        // Se "run in bianco" è attivo ed è l'Acqua 18O (codice '424'), cerca prima un lotto NON approvato
+                        if (isRunInBianco && m.codice === '424') {
+                            for (let i = 0; i < m.lotti.length; i++) {
+                                const l = m.lotti[i];
+                                const giac = parseFloat(l.giacenza) || 0.0;
+                                const isVerdeOk = (l.has_verde && l.has_verde > 0) || (l.etich && (l.etich.toLowerCase() === 'ok' || l.etich.toLowerCase() === 'si' || l.etich.toLowerCase() === 'sì'));
+                                if (giac >= standardQnt && !isVerdeOk) {
+                                    selectedLotto = l;
+                                    break;
+                                }
+                            }
+                            if (!selectedLotto) {
+                                for (let i = 0; i < m.lotti.length; i++) {
+                                    const l = m.lotti[i];
+                                    const isVerdeOk = (l.has_verde && l.has_verde > 0) || (l.etich && (l.etich.toLowerCase() === 'ok' || l.etich.toLowerCase() === 'si' || l.etich.toLowerCase() === 'sì'));
+                                    if (!isVerdeOk) {
+                                        selectedLotto = l;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Se non è Run in Bianco o non abbiamo trovato alcun lotto non approvato, procedi normalmente
+                        if (!selectedLotto) {
+                            for (let i = 0; i < m.lotti.length; i++) {
+                                const l = m.lotti[i];
+                                const giac = parseFloat(l.giacenza) || 0.0;
+                                const isVerdeOk = (l.has_verde && l.has_verde > 0) || (l.etich && (l.etich.toLowerCase() === 'ok' || l.etich.toLowerCase() === 'si' || l.etich.toLowerCase() === 'sì'));
+                                if (giac >= standardQnt && isVerdeOk) {
+                                    selectedLotto = l;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Fallback: cerca un lotto qualsiasi con giacenza sufficiente
+                        if (!selectedLotto) {
+                            for (let i = 0; i < m.lotti.length; i++) {
+                                const l = m.lotti[i];
+                                const giac = parseFloat(l.giacenza) || 0.0;
+                                if (giac >= standardQnt) {
+                                    selectedLotto = l;
+                                    break;
+                                }
                             }
                         }
                         if (!selectedLotto) {
@@ -551,7 +613,9 @@
                     let dropdownLabel = '-- Seleziona Lotto --';
                     let hiddenLottoValue = '';
                     if (selectedLotto) {
-                        dropdownLabel = `${selectedLotto.lotto_interno} (Giac: ${selectedLotto.giacenza} - Scad: ${selectedLotto.data_scadenza || 'N/A'})`;
+                        const isVerdeOk = (selectedLotto.has_verde && selectedLotto.has_verde > 0) || (selectedLotto.etich && (selectedLotto.etich.toLowerCase() === 'ok' || selectedLotto.etich.toLowerCase() === 'si' || selectedLotto.etich.toLowerCase() === 'sì'));
+                        const verdeIndicator = isVerdeOk ? '🟢' : '🔴';
+                        dropdownLabel = `${verdeIndicator} ${selectedLotto.lotto_interno} (Giac: ${selectedLotto.giacenza} - Scad: ${selectedLotto.data_scadenza || 'N/A'})`;
                         hiddenLottoValue = selectedLotto.lotto_interno;
                     }
 
@@ -562,14 +626,20 @@
                     
                     if (m.lotti && m.lotti.length > 0) {
                         m.lotti.forEach(l => {
+                            const isVerdeOk = (l.has_verde && l.has_verde > 0) || (l.etich && (l.etich.toLowerCase() === 'ok' || l.etich.toLowerCase() === 'si' || l.etich.toLowerCase() === 'sì'));
+                            const badgeHtml = isVerdeOk 
+                                ? `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.65rem; border: 1px solid rgba(16, 185, 129, 0.25);">🟢 Et. Verde OK</span>`
+                                : `<span style="background: rgba(248, 113, 113, 0.15); color: #f87171; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.65rem; border: 1px solid rgba(248, 113, 113, 0.25);">🔴 No Et. Verde</span>`;
+                                
                             lottiHtml += `
-                                <div class="lotto-item" data-giacenza="${l.giacenza}" data-scadenza="${l.data_scadenza || 'N/A'}" onclick="selectFDGLotto(this, '${l.lotto_interno}', '${m.codice}')">
-                                    <div class="lotto-main-info" style="font-size: 0.85rem;">
+                                <div class="lotto-item" data-giacenza="${l.giacenza}" data-scadenza="${l.data_scadenza || 'N/A'}" data-verde="${isVerdeOk ? 'true' : 'false'}" onclick="selectFDGLotto(this, '${l.lotto_interno}', '${m.codice}')">
+                                    <div class="lotto-main-info" style="font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
                                         <span>${l.lotto_interno}</span>
                                         <span style="color: #df137e;">${l.giacenza}</span>
                                     </div>
-                                    <div class="lotto-sub-info" style="font-size: 0.7rem;">
+                                    <div class="lotto-sub-info" style="font-size: 0.7rem; display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
                                         <span>Scad: ${l.data_scadenza || 'N/A'}</span>
+                                        ${badgeHtml}
                                     </div>
                                 </div>`;
                         });
@@ -621,8 +691,10 @@
                                     const lotto = bestLottoItem.querySelector('.lotto-main-info span:first-child').textContent;
                                     const giacenza = bestLottoItem.getAttribute('data-giacenza') || '0';
                                     const scadenza = bestLottoItem.getAttribute('data-scadenza') || 'N/A';
+                                    const isVerde = bestLottoItem.getAttribute('data-verde') === 'true';
+                                    const verdeIndicator = isVerde ? '🟢' : '🔴';
                                     
-                                    dropdownSelectedLabel.textContent = `${lotto} (Giac: ${giacenza} - Scad: ${scadenza})`;
+                                    dropdownSelectedLabel.textContent = `${verdeIndicator} ${lotto} (Giac: ${giacenza} - Scad: ${scadenza})`;
                                     currentSelectedInput.value = lotto;
                                 }
                             }
@@ -695,10 +767,12 @@
         btn.disabled = true;
         btn.textContent = '⌛ Registrazione in corso...';
 
+        const runInBianco = document.getElementById('run_in_bianco').checked;
+
         fetch('/scarico_fdg', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lotto_prod, operatore, data: fdgData, items })
+            body: JSON.stringify({ lotto_prod, operatore, data: fdgData, items, run_in_bianco: runInBianco })
         })
         .then(res => res.json())
         .then(data => {
@@ -1036,8 +1110,10 @@
         const dropdown = itemEl.closest('.custom-dropdown');
         const giacenza = itemEl.getAttribute('data-giacenza') || '0';
         const scadenza = itemEl.getAttribute('data-scadenza') || 'N/A';
+        const isVerde = itemEl.getAttribute('data-verde') === 'true';
+        const verdeIndicator = isVerde ? '🟢' : '🔴';
         
-        dropdown.querySelector('.dropdown-selected').textContent = `${lotto} (Giac: ${giacenza} - Scad: ${scadenza})`;
+        dropdown.querySelector('.dropdown-selected').textContent = `${verdeIndicator} ${lotto} (Giac: ${giacenza} - Scad: ${scadenza})`;
         dropdown.querySelector('.fdg-lotto-input').value = lotto;
         dropdown.querySelector('.dropdown-list').style.display = 'none';
     }

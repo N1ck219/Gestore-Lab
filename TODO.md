@@ -134,3 +134,5 @@ L'obiettivo è rendere l'interfaccia estremamente fluida, rapida e a prova di er
 *   [ ] **Filtri di Visualizzazione Rapida nelle Tabelle (Pulizia Visiva)**
     *   [ ] **Toggle Lotti Attivi:** Nel *Registro Lotti*, inserire un interruttore rapido (es. pulsante o checkbox) per mostrare/nascondere con un clic i lotti esauriti o chiusi (`chiuso = 'SI'`), pulendo la visualizzazione.
     *   [ ] **Toggle Stato Allarmi:** Nello *Stato Magazzino*, inserire filtri veloci per mostrare solo le materie prime sotto la scorta minima o con lotti in scadenza.
+
+

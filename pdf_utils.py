@@ -230,7 +230,7 @@ def genera_pdf_richiesta_analisi(lotti, filepath):
     
     # --- TABELLA DATI ---
     widths = [45, 25, 30, 30, 20, 20, 20]
-    headers = ["Materiale", "N. lotto interno", "Nome fornitore", "N. lotto fornitore", "Data di arrivo", "Quantita", "Data di QC"]
+    headers = ["Materiale", "N. lotto interno", "Nome fornitore", "N. lotto fornitore", "Data di arrivo", "Quantita", "Data al QC"]
     
     # Scrittura intestazione tabella
     pdf.set_font("helvetica", "B", 9)

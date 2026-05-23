@@ -51,6 +51,8 @@ header {
     padding: 1.25rem 0;
     margin-bottom: 2.5rem;
     border-bottom: 1px solid var(--border-color);
+    position: relative;
+    z-index: 2000; /* Assicura che l'intero header e i suoi menu a discesa siano sopra al contenuto principale */
 }
 
 .header-left {

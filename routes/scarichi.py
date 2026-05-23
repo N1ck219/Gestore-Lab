@@ -211,12 +211,13 @@ def register_scarichi_routes(app):
         conn = get_db_connection()
         for item in materie_list:
             lotti_rows = conn.execute('''
-                SELECT lotto_interno, giacenza, data_scadenza
-                FROM Lotti_Interni 
-                WHERE codice_mp = ? 
-                  AND (chiuso IS NULL OR chiuso != "SI" AND chiuso != "X")
-                  AND CAST(giacenza AS FLOAT) > 0
-                ORDER BY data_scadenza ASC, data_arrivo ASC
+                SELECT L.lotto_interno, L.giacenza, L.data_scadenza, L.etich,
+                       (SELECT COUNT(*) FROM Storico_Etichette WHERE lotto_interno = L.lotto_interno AND tipo_stampa = 'VERDE') as has_verde
+                FROM Lotti_Interni L
+                WHERE L.codice_mp = ? 
+                  AND (L.chiuso IS NULL OR L.chiuso != "SI" AND L.chiuso != "X")
+                  AND CAST(L.giacenza AS FLOAT) > 0
+                ORDER BY L.data_scadenza ASC, L.data_arrivo ASC
             ''', (item['codice'],)).fetchall()
             item['lotti'] = [dict(row) for row in lotti_rows]
         conn.close()
@@ -462,6 +463,7 @@ def register_scarichi_routes(app):
         operatore = data_json.get('operatore')
         data_scarico = data_json.get('data', today)
         items = data_json.get('items', [])
+        run_in_bianco = data_json.get('run_in_bianco', False)
         
         if not (lotto_prod and operatore and items):
             return {'success': False, 'message': 'Campi obbligatori mancanti (Lotto Prod, Operatore, Items)'}, 400
@@ -484,7 +486,8 @@ def register_scarichi_routes(app):
                     return {'success': False, 'message': f'La quantità per l\'articolo con codice {codice} deve essere maggiore di zero.'}, 400
                 
                 row = cursor.execute('''
-                    SELECT L.giacenza, M.nome_mp 
+                    SELECT L.giacenza, L.etich, L.data_scadenza, M.nome_mp,
+                           (SELECT COUNT(*) FROM Storico_Etichette WHERE lotto_interno = L.lotto_interno AND tipo_stampa = 'VERDE') as has_verde
                     FROM Lotti_Interni L 
                     JOIN Elenco_MP M ON L.codice_mp = M.codice 
                     WHERE L.lotto_interno = ?
@@ -492,6 +495,31 @@ def register_scarichi_routes(app):
                 
                 if not row:
                     return {'success': False, 'message': f'Lotto {lotto} non trovato'}, 400
+                
+                # Controllo se scaduto
+                scadenza_str = row['data_scadenza']
+                if scadenza_str:
+                    try:
+                        scad_dt = datetime.strptime(scadenza_str, '%Y-%m-%d').date()
+                        scarico_dt = datetime.strptime(data_scarico, '%Y-%m-%d').date()
+                        if scad_dt < scarico_dt:
+                            nome_mp = row['nome_mp'] or codice
+                            return {'success': False, 'message': f"Errore: Il lotto {lotto} per la materia prima \"{nome_mp}\" è scaduto il {scad_dt.strftime('%d-%m-%Y')}! Scarico non consentito."}, 400
+                    except ValueError:
+                        pass
+                
+                # Controllo se approvato con Etichetta Verde
+                etich_val = row['etich'] or ''
+                has_verde = row['has_verde'] or 0
+                is_verde_ok = etich_val.upper() in ('OK', 'SI', 'SÌ') or has_verde > 0
+                
+                if not is_verde_ok:
+                    # In caso di "run in bianco", è consentito usare un lotto non ancora approvato solo per l'acqua 18O (codice '424')
+                    if run_in_bianco and codice == '424':
+                        pass
+                    else:
+                        nome_mp = row['nome_mp'] or codice
+                        return {'success': False, 'message': f"Errore: Il lotto {lotto} per la materia prima \"{nome_mp}\" non è ancora stato approvato con l'etichetta verde (QC). Scarico non consentito!"}, 400
                 
                 giacenza = float(row['giacenza']) if row['giacenza'] else 0.0
                 if quantita > giacenza:
