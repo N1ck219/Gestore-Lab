@@ -91,7 +91,7 @@ header {
 .btn-home {
     background: rgba(255, 255, 255, 0.05);
     color: var(--text-primary);
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    border: 1.5px solid rgba(255, 255, 255, 0.35);
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -389,3 +389,501 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.9));
     opacity: 1;
 }
+
+/* Tooltip Informativi Premium */
+.tooltip-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.tooltip-trigger {
+    color: var(--accent-color);
+    cursor: help;
+    font-size: 0.85rem;
+    opacity: 0.75;
+    transition: opacity 0.2s, transform 0.2s;
+    user-select: none;
+    font-style: normal;
+}
+
+.tooltip-trigger:hover {
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+.tooltip-text {
+    visibility: hidden;
+    width: 290px;
+    background-color: var(--card-bg);
+    color: var(--text-pale);
+    text-align: left;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    position: absolute;
+    z-index: 9999;
+    bottom: 135%; /* Posiziona sopra il trigger */
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    opacity: 0;
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
+    font-size: 0.8rem;
+    font-weight: normal;
+    line-height: 1.45;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    pointer-events: none;
+    backdrop-filter: blur(10px);
+}
+
+.tooltip-text strong {
+    color: white;
+}
+
+/* Freccia in basso del tooltip */
+.tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -6px;
+    border-width: 6px;
+    border-style: solid;
+    border-color: var(--border-color) transparent transparent transparent;
+}
+
+.tooltip-wrapper:hover .tooltip-text,
+.tooltip-wrapper:focus-within .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Stile per i vincoli all'interno del tooltip */
+.tooltip-constraint {
+    display: block;
+    margin-top: 0.5rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--warning);
+    font-size: 0.75rem;
+    line-height: 1.3;
+}
+
+/* ==========================================================================
+   LIGHT MODE & HIGH CONTRAST THEME SWITCH
+   ========================================================================== */
+
+/* Stile speciale per il Bottone Statistiche nell'Header (Default Dark) */
+.btn-stats {
+    background: rgba(6, 182, 212, 0.08) !important;
+    border: 1px solid rgba(6, 182, 212, 0.25) !important;
+    color: #67e8f9 !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.btn-stats:hover {
+    background: rgba(6, 182, 212, 0.18) !important;
+    border-color: rgba(6, 182, 212, 0.55) !important;
+    color: white !important;
+    transform: translateY(-1px);
+}
+
+:root.light-mode {
+    color-scheme: light;
+    /* Palette Elegante Space & Tech Light (Alta Visibilità) */
+    --bg-dark: #f1f5f9;          /* Sfondo grigio chiarissimo ad alta leggibilità */
+    --card-bg: #ffffff;          /* Sfondo card bianco candido */
+    --card-hover-bg: #f8fafc;    /* Sfondo card hover grigio tenue */
+    --accent-color: #0891b2;     /* Ciano scuro per contrasto su fondo chiaro */
+    --primary-color: #4338ca;    /* Indaco più marcato */
+    --text-primary: #0f172a;     /* Testo principale scuro (quasi nero) */
+    --text-secondary: #475569;   /* Testo secondario grigio ardesia scuro */
+    --text-pale: #334155;        /* Testo scuro attenuato */
+    --border-color: #cbd5e1;     /* Bordi grigi chiari ben definiti */
+    --border-hover: #94a3b8;     /* Bordi hover più visibili */
+    --muted-color: #64748b;      /* Testo disattivato */
+    
+    /* Colori di Stato moderni per Light Mode */
+    --success: #059669;          /* Smeraldo scuro */
+    --warning: #d97706;          /* Ambra scuro */
+    --danger: #e11d48;           /* Rosa corallo scuro */
+    
+    /* Gradienti premium per Light Mode */
+    --gradient: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%);
+    --gradient-hover: linear-gradient(135deg, #0369a1 0%, #3730a3 100%);
+}
+
+/* Modifiche per gli Sfondi e Gradienti */
+:root.light-mode body {
+    background-image: radial-gradient(circle at 50% 0%, #e2e8f0 0%, var(--bg-dark) 75%);
+}
+
+/* Tasto Statistiche in Light Mode (Alto Contrasto) */
+:root.light-mode .btn-stats {
+    background: rgba(8, 145, 178, 0.12) !important;
+    border-color: rgba(8, 145, 178, 0.35) !important;
+    color: #0891b2 !important;
+}
+
+:root.light-mode .btn-stats:hover {
+    background: rgba(8, 145, 178, 0.22) !important;
+    color: #0e7490 !important;
+    border-color: rgba(8, 145, 178, 0.6) !important;
+}
+
+/* Modifiche per Input e Form Elementi in Light Mode */
+:root.light-mode input,
+:root.light-mode select,
+:root.light-mode textarea {
+    background: #ffffff !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+:root.light-mode input:focus,
+:root.light-mode select:focus,
+:root.light-mode textarea:focus {
+    border-color: var(--accent-color) !important;
+    background: #ffffff !important;
+    box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.15) !important;
+}
+
+:root.light-mode input::placeholder {
+    color: var(--muted-color);
+}
+
+/* Data Input indicator per Light Mode */
+:root.light-mode input[type="date"] {
+    color-scheme: light;
+}
+
+:root.light-mode input[type="date"]::-webkit-calendar-picker-indicator {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%230891b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>');
+    filter: none;
+}
+
+/* Modifiche per gli elementi di testo specifici che hanno colori assoluti scuri */
+:root.light-mode h1,
+:root.light-mode h2,
+:root.light-mode h3,
+:root.light-mode h4,
+:root.light-mode .main-card h3 {
+    color: var(--text-primary) !important;
+}
+
+/* Dropdown del tema chiaro */
+:root.light-mode .dropdown-content {
+    background: #ffffff !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.08) !important;
+}
+
+:root.light-mode .dropdown-content a {
+    color: var(--text-pale) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+:root.light-mode .dropdown-content a:hover {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+    color: var(--text-primary) !important;
+}
+
+:root.light-mode .dropdown-content a.btn-shutdown {
+    color: #ef4444 !important;
+}
+
+:root.light-mode .dropdown-content a.btn-shutdown:hover {
+    background-color: rgba(239, 68, 68, 0.08) !important;
+}
+
+/* Modali in Light Mode */
+:root.light-mode .modal-content,
+:root.light-mode .edit-modal-content {
+    background: #ffffff !important;
+    border-color: var(--border-color) !important;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.15) !important;
+}
+
+:root.light-mode .close,
+:root.light-mode .edit-close-btn {
+    color: var(--text-secondary) !important;
+}
+
+:root.light-mode .close:hover,
+:root.light-mode .edit-close-btn:hover {
+    color: var(--text-primary) !important;
+}
+
+/* Tooltip in Light Mode */
+:root.light-mode .tooltip-text {
+    background-color: #ffffff !important;
+    color: var(--text-pale) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+}
+
+:root.light-mode .tooltip-text strong {
+    color: var(--text-primary) !important;
+}
+
+:root.light-mode .tooltip-text::after {
+    border-color: var(--border-color) transparent transparent transparent !important;
+}
+
+/* Badge specifici in Light Mode */
+:root.light-mode .badge {
+    background: rgba(8, 145, 178, 0.08) !important;
+    color: #0891b2 !important;
+    border-color: rgba(8, 145, 178, 0.25) !important;
+}
+
+/* Tabelle in Light Mode */
+:root.light-mode th {
+    background: rgba(0, 0, 0, 0.03) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+:root.light-mode td {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+}
+
+:root.light-mode tr:hover td {
+    background-color: rgba(0, 0, 0, 0.015) !important;
+    color: var(--text-primary) !important;
+}
+
+/* DataTables Light Mode Overrides */
+:root.light-mode .dataTables_wrapper {
+    color: var(--text-secondary) !important;
+}
+
+:root.light-mode .dataTables_length select,
+:root.light-mode .dataTables_filter input {
+    background-color: #ffffff !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+:root.light-mode table.dataTable thead th {
+    background-color: var(--card-bg) !important; /* Diventa 100% bianco opaco per coprire lo scroll sticky */
+    border-bottom: 2px solid var(--border-color) !important;
+}
+
+:root.light-mode table.dataTable tbody td {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+    color: var(--text-primary) !important;
+}
+
+:root.light-mode .dataTables_info,
+:root.light-mode .dataTables_paginate {
+    color: var(--text-secondary) !important;
+}
+
+:root.light-mode .dataTables_paginate .paginate_button {
+    color: var(--text-secondary) !important;
+}
+
+:root.light-mode .dataTables_paginate .paginate_button.current {
+    color: #ffffff !important;
+}
+
+/* Spotlight Search in Light Mode */
+:root.light-mode .search-spotlight-wrapper {
+    background: rgba(255, 255, 255, 0.8) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+:root.light-mode .search-spotlight-wrapper:focus-within {
+    background: #ffffff !important;
+    box-shadow: 0 0 0 1px var(--accent-color), 
+                0 8px 32px rgba(8, 145, 178, 0.1) !important;
+}
+
+:root.light-mode #spotlightSearchInput {
+    color: var(--text-primary) !important;
+}
+
+:root.light-mode #spotlightSearchInput::placeholder {
+    color: var(--muted-color) !important;
+}
+
+:root.light-mode .search-results-dropdown {
+    background: rgba(255, 255, 255, 0.98) !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1), 
+                0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+}
+
+:root.light-mode .result-item {
+    background: rgba(0, 0, 0, 0.005) !important;
+    border-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+:root.light-mode .result-item:hover {
+    background: rgba(0, 0, 0, 0.02) !important;
+    border-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+:root.light-mode .result-item-title {
+    color: var(--text-primary) !important;
+}
+
+:root.light-mode .action-link.secondary {
+    background: rgba(0, 0, 0, 0.03) !important;
+    color: var(--text-pale) !important;
+    border-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+:root.light-mode .action-link.secondary:hover {
+    background: rgba(0, 0, 0, 0.06) !important;
+    color: var(--text-primary) !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+:root.light-mode .results-group-header {
+    border-bottom-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+:root.light-mode .search-empty-title {
+    color: var(--text-primary) !important;
+}
+
+/* Sidebar Warning Cards in Light Mode */
+:root.light-mode .warning-sidebar-card {
+    background: rgba(255, 255, 255, 0.8) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05) !important;
+}
+
+:root.light-mode .alert-item {
+    background: rgba(0, 0, 0, 0.01) !important;
+    border-color: rgba(0, 0, 0, 0.03) !important;
+}
+
+:root.light-mode .alert-item:hover {
+    background: rgba(0, 0, 0, 0.02) !important;
+}
+
+:root.light-mode .alert-item-footer {
+    border-top-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Altre card ed elementi con stili rigidi */
+:root.light-mode .card-panel {
+    background: #ffffff !important;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.05) !important;
+}
+
+:root.light-mode .chart-panel-header {
+    border-bottom-color: rgba(0,0,0,0.05) !important;
+}
+
+:root.light-mode .chart-selector {
+    background: rgba(255,255,255,0.8) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+:root.light-mode .kpi-card {
+    background: #ffffff !important;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.03) !important;
+}
+
+:root.light-mode .kpi-card:hover {
+    background: var(--card-hover-bg) !important;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.06) !important;
+}
+
+:root.light-mode .kpi-icon {
+    background: rgba(0,0,0,0.01) !important;
+    border-color: rgba(0,0,0,0.03) !important;
+}
+
+:root.light-mode .kpi-value {
+    color: var(--text-primary) !important;
+}
+
+/* Divisori di Categoria nel Magazzino (Light Mode Overrides) */
+:root.light-mode .group-header td {
+    background: #cbd5e1 !important; /* Grigio ardesia chiaro solido per le righe sticky delle categorie */
+    color: var(--text-primary) !important;
+}
+
+:root.light-mode .cat-blue td {
+    background: linear-gradient(rgba(129, 140, 248, 0.15), rgba(129, 140, 248, 0.15)), #cbd5e1 !important;
+    border-bottom: 2px solid #4f46e5 !important;
+}
+
+:root.light-mode .cat-blue td:first-child {
+    color: #4f46e5 !important;
+    border-left: 5px solid #4f46e5 !important;
+}
+
+:root.light-mode .cat-orange td {
+    background: linear-gradient(rgba(251, 146, 60, 0.15), rgba(251, 146, 60, 0.15)), #cbd5e1 !important;
+    border-bottom: 2px solid #fb923c !important;
+}
+
+:root.light-mode .cat-orange td:first-child {
+    color: #b45309 !important;
+    border-left: 5px solid #fb923c !important;
+}
+
+:root.light-mode .cat-purple td {
+    background: linear-gradient(rgba(167, 139, 250, 0.15), rgba(167, 139, 250, 0.15)), #cbd5e1 !important;
+    border-bottom: 2px solid #8b5cf6 !important;
+}
+
+:root.light-mode .cat-purple td:first-child {
+    color: #6d28d9 !important;
+    border-left: 5px solid #8b5cf6 !important;
+}
+
+:root.light-mode .cat-green td {
+    background: linear-gradient(rgba(74, 222, 128, 0.15), rgba(74, 222, 128, 0.15)), #cbd5e1 !important;
+    border-bottom: 2px solid #059669 !important;
+}
+
+:root.light-mode .cat-green td:first-child {
+    color: #047857 !important;
+    border-left: 5px solid #059669 !important;
+}
+
+:root.light-mode .cat-gray td {
+    background: linear-gradient(rgba(71, 85, 105, 0.15), rgba(71, 85, 105, 0.15)), #cbd5e1 !important;
+    border-bottom: 2px solid #475569 !important;
+}
+
+:root.light-mode .cat-gray td:first-child {
+    color: #334155 !important;
+    border-left: 5px solid #475569 !important;
+}
+
+/* Bordi più spessi e contrastati per i tasti header in Light Mode */
+:root.light-mode .btn-home {
+    background: rgba(0, 0, 0, 0.02) !important;
+    border: 1.5px solid rgba(15, 23, 42, 0.25) !important;
+    color: var(--text-primary) !important;
+}
+
+:root.light-mode .btn-home:hover {
+    background: rgba(0, 0, 0, 0.06) !important;
+    border-color: rgba(15, 23, 42, 0.5) !important;
+}
+
+:root.light-mode .btn-settings {
+    background: rgba(0, 0, 0, 0.02) !important;
+    border: 1.5px solid rgba(15, 23, 42, 0.25) !important;
+    color: var(--text-primary) !important;
+}
+
+:root.light-mode .btn-settings:hover {
+    background: rgba(0, 0, 0, 0.06) !important;
+    border-color: rgba(15, 23, 42, 0.5) !important;
+}
+
+

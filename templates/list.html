@@ -13,7 +13,23 @@
         border-radius: 0.5rem;
         padding: 5px;
     }
-    table.dataTable thead th { border-bottom: 1px solid var(--border-color); color: var(--text-secondary); }
+    table.dataTable {
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+    }
+    table.dataTable thead th { 
+        border-bottom: 1px solid var(--border-color) !important; 
+        color: var(--text-secondary) !important; 
+        position: sticky !important; 
+        top: 0 !important; 
+        background: var(--card-bg) !important; 
+        z-index: 100 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+    }
+    .table-container {
+        overflow: visible !important;
+        position: relative;
+    }
     table.dataTable tbody td { border-bottom: 1px solid var(--border-color); background: transparent !important; color: var(--text-primary); }
     .dataTables_info, .dataTables_paginate { margin-top: 1rem; color: var(--text-secondary) !important; }
     .dataTables_paginate .paginate_button { color: var(--text-secondary) !important; border-radius: 5px !important; }
@@ -202,7 +218,17 @@
             
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="edit_codice">Codice Interno *</label>
+                    <label for="edit_codice">
+                        Codice Interno *
+                        <span class="tooltip-wrapper" tabindex="0">
+                            <span class="tooltip-trigger">🛈</span>
+                            <span class="tooltip-text">
+                                <strong>Codice Interno</strong><br>
+                                Il codice identificativo numerico univoco della materia prima.<br>
+                                <span class="tooltip-constraint">⚠️ <strong>Vincolo:</strong> Deve essere un numero intero non duplicato nel sistema.</span>
+                            </span>
+                        </span>
+                    </label>
                     <input type="text" name="codice" id="edit_codice" required>
                 </div>
                 
@@ -238,7 +264,17 @@
 
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="edit_scorta_minima">Quantità Minima (Opzionale)</label>
+                    <label for="edit_scorta_minima">
+                        Quantità Minima (Opzionale)
+                        <span class="tooltip-wrapper" tabindex="0">
+                            <span class="tooltip-trigger">🛈</span>
+                            <span class="tooltip-text">
+                                <strong>Quantità Minima (Scorta Minima)</strong><br>
+                                Soglia di allerta sotto la quale la materia prima è considerata sottoscorta.<br>
+                                <span class="tooltip-constraint">⚠️ <strong>Vincolo:</strong> Deve essere un valore numerico positivo.</span>
+                            </span>
+                        </span>
+                    </label>
                     <input type="number" step="0.01" name="scorta_minima" id="edit_scorta_minima">
                 </div>
                 <div></div> <!-- Spazio vuoto per bilanciare il grid -->
@@ -270,12 +306,18 @@
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
     $(document).ready(function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryVal = urlParams.get('q') || '';
+
         $('#mpTable').DataTable({
             "language": {
                 "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json"
             },
             "pageLength": 25,
-            "order": [[ 0, "asc" ]] // Ordina per Nome Materia Prima (ora colonna 0)
+            "order": [[ 0, "asc" ]], // Ordina per Nome Materia Prima (ora colonna 0)
+            "search": {
+                "search": queryVal
+            }
         });
     });
 

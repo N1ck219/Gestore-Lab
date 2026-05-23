@@ -7,7 +7,17 @@
     <form method="post">
         <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
             <div class="form-group">
-                <label for="codice">Codice Interno *</label>
+                <label for="codice">
+                    Codice Interno *
+                    <span class="tooltip-wrapper" tabindex="0">
+                        <span class="tooltip-trigger">🛈</span>
+                        <span class="tooltip-text">
+                            <strong>Codice Interno</strong><br>
+                            Il codice identificativo numerico univoco della materia prima.<br>
+                            <span class="tooltip-constraint">⚠️ <strong>Vincolo:</strong> Deve essere un numero intero non duplicato nel sistema.</span>
+                        </span>
+                    </span>
+                </label>
                 <input type="text" name="codice" id="codice" placeholder="Es. 424" required 
                        value="{{ form_data.codice if form_data else '' }}">
             </div>
@@ -55,15 +65,35 @@
             </div>
 
             <div class="form-group">
-                <label for="scorta_minima">Quantità Minima (Opzionale)</label>
+                <label for="scorta_minima">
+                    Quantità Minima (Opzionale)
+                    <span class="tooltip-wrapper" tabindex="0">
+                        <span class="tooltip-trigger">🛈</span>
+                        <span class="tooltip-text">
+                            <strong>Quantità Minima (Scorta Minima)</strong><br>
+                            Soglia di allerta sotto la quale la materia prima è considerata sottoscorta.<br>
+                            <span class="tooltip-constraint">⚠️ <strong>Vincolo:</strong> Deve essere un valore numerico positivo.</span>
+                        </span>
+                    </span>
+                </label>
                 <input type="number" step="0.01" name="scorta_minima" id="scorta_minima" placeholder="Es. 10.5"
                        value="{{ form_data.scorta_minima if form_data else '' }}">
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: 0.75rem; margin-bottom: 1.5rem;">
             <div class="form-group" style="margin-bottom: 0;">
-                <label for="controcampione">Controcampione *</label>
+                <label for="controcampione">
+                    Controcampione *
+                    <span class="tooltip-wrapper" tabindex="0">
+                        <span class="tooltip-trigger">🛈</span>
+                        <span class="tooltip-text">
+                            <strong>Richiede Controcampione</strong><br>
+                            Determina se i lotti di questa materia prima richiedono la conservazione di un campione di stabilità/archivio.<br>
+                            <span class="tooltip-constraint">⚠️ <strong>Vincolo:</strong> Se impostato su SI, il sistema ne richiederà il tracciamento all'arrivo dei lotti.</span>
+                        </span>
+                    </span>
+                </label>
                 <select name="controcampione" id="controcampione" required>
                     <option value="NO" {% if form_data and form_data.controcampione == 'NO' %}selected{% endif %}>NO</option>
                     <option value="SI" {% if form_data and form_data.controcampione == 'SI' %}selected{% endif %}>SI</option>
@@ -71,7 +101,17 @@
             </div>
             
             <div class="form-group" style="margin-bottom: 0;">
-                <label for="distribuzione">Distribuzione *</label>
+                <label for="distribuzione">
+                    Distribuzione *
+                    <span class="tooltip-wrapper" tabindex="0">
+                        <span class="tooltip-trigger">🛈</span>
+                        <span class="tooltip-text">
+                            <strong>Richiede Scheda Distribuzione</strong><br>
+                            Determina se per questa materia prima deve essere stampata la scheda di distribuzione per tracciare i consumi per reparto.<br>
+                            <span class="tooltip-constraint">⚠️ <strong>Vincolo:</strong> Obbligatorio. Abilita la generazione PDF della scheda distribuzione.</span>
+                        </span>
+                    </span>
+                </label>
                 <select name="distribuzione" id="distribuzione" required>
                     <option value="NO" {% if form_data and form_data.distribuzione == 'NO' %}selected{% endif %}>NO</option>
                     <option value="SI" {% if form_data and form_data.distribuzione == 'SI' %}selected{% endif %}>SI</option>
@@ -87,4 +127,22 @@
         </div>
     </form>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const codiceInput = document.getElementById("codice");
+        const codiceFornitoreInput = document.getElementById("codice_fornitore");
+        
+        if (codiceInput) {
+            codiceInput.addEventListener("input", function() {
+                this.value = this.value.toUpperCase();
+            });
+        }
+        if (codiceFornitoreInput) {
+            codiceFornitoreInput.addEventListener("input", function() {
+                this.value = this.value.toUpperCase();
+            });
+        }
+    });
+</script>
 {% endblock %}

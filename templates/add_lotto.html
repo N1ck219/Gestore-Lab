@@ -71,7 +71,17 @@
                 <input type="date" name="data_arrivo" id="data_arrivo" value="{{ form_data.data_arrivo if form_data else today }}" required>
             </div>
             <div class="form-group">
-                <label for="data_scadenza">Data Scadenza *</label>
+                <label for="data_scadenza">
+                    Data Scadenza *
+                    <span class="tooltip-wrapper" tabindex="0">
+                        <span class="tooltip-trigger">🛈</span>
+                        <span class="tooltip-text">
+                            <strong>Data Scadenza</strong><br>
+                            La data entro cui la materia prima deve essere necessariamente utilizzata o rivalutata.<br>
+                            <span class="tooltip-constraint">⚠️ <strong>Vincolo:</strong> Deve essere una data valida e successiva alla data di arrivo.</span>
+                        </span>
+                    </span>
+                </label>
                 <input type="date" name="data_scadenza" id="data_scadenza" value="{{ form_data.data_scadenza if form_data else '' }}" required>
             </div>
         </div>
@@ -123,7 +133,17 @@
         <!-- RIGA 4: LOTTI -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
             <div class="form-group">
-                <label for="lotto_interno">Lotto Interno *</label>
+                <label for="lotto_interno">
+                    Lotto Interno *
+                    <span class="tooltip-wrapper" tabindex="0">
+                        <span class="tooltip-trigger">🛈</span>
+                        <span class="tooltip-text">
+                            <strong>Lotto Interno</strong><br>
+                            Identificativo alfanumerico univoco generato dal laboratorio per tracciare il lotto.<br>
+                            <span class="tooltip-constraint">⚠️ <strong>Vincolo:</strong> Deve essere univoco nel sistema.</span>
+                        </span>
+                    </span>
+                </label>
                 <input type="text" name="lotto_interno" id="lotto_interno" placeholder="Es. UDN/XXX-YY" required
                        value="{{ form_data.lotto_interno if form_data else '' }}">
             </div>
@@ -137,12 +157,32 @@
         <!-- RIGA 5: QUANTITÀ -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
             <div class="form-group">
-                <label for="qnt_arrivata">Quantità Arrivata *</label>
+                <label for="qnt_arrivata">
+                    Quantità Arrivata *
+                    <span class="tooltip-wrapper" tabindex="0">
+                        <span class="tooltip-trigger">🛈</span>
+                        <span class="tooltip-text">
+                            <strong>Quantità Arrivata</strong><br>
+                            Il quantitativo complessivo della materia prima ricevuta con questo lotto (espressa nell'unità di misura del prodotto).<br>
+                            <span class="tooltip-constraint">⚠️ <strong>Vincolo:</strong> Deve essere un valore numerico positivo.</span>
+                        </span>
+                    </span>
+                </label>
                 <input type="text" name="qnt_arrivata" id="qnt_arrivata" placeholder="Es. 500" required
                        value="{{ form_data.qnt_arrivata if form_data else '' }}">
             </div>
             <div class="form-group">
-                <label for="pz_x_cf">Pezzi x cf *</label>
+                <label for="pz_x_cf">
+                    Pezzi x cf *
+                    <span class="tooltip-wrapper" tabindex="0">
+                        <span class="tooltip-trigger">🛈</span>
+                        <span class="tooltip-text">
+                            <strong>Pezzi per Confezione (Pz x Cf)</strong><br>
+                            Indica il numero di flaconi, fiale o unità elementari contenuti in ciascuna confezione arrivata.<br>
+                            <span class="tooltip-constraint">⚠️ <strong>Vincolo:</strong> Deve essere un numero intero strettamente positivo (maggiore di 0). Obbligatorio per calcolare la giacenza.</span>
+                        </span>
+                    </span>
+                </label>
                 <input type="text" name="pz_x_cf" id="pz_x_cf" placeholder="Es. 10" required
                        value="{{ form_data.pz_x_cf if form_data else '' }}">
             </div>
@@ -274,5 +314,27 @@
             fornResults.style.display = 'none';
         }
     });
+
+    // Auto-compilazione Date: imposta la data odierna come default per Data Arrivo se vuoto
+    const dataArrivo = document.getElementById('data_arrivo');
+    if (dataArrivo && !dataArrivo.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dataArrivo.value = today;
+    }
+
+    // Maiuscolo Automatico per campi sensibili (Lotto Interno, Lotto Fornitore)
+    const lottoInterno = document.getElementById('lotto_interno');
+    const lottoFornitore = document.getElementById('lotto_fornitore');
+
+    if (lottoInterno) {
+        lottoInterno.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+    }
+    if (lottoFornitore) {
+        lottoFornitore.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+    }
 </script>
 {% endblock %}

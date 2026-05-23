@@ -72,13 +72,18 @@
     .card-details {
         max-height: 0;
         overflow: hidden;
-        transition: max-height 0.3s ease-out;
-        background: rgba(0,0,0,0.2);
-        border-top: 1px solid rgba(255,255,255,0.05);
+        transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        background: linear-gradient(to bottom, rgba(6, 182, 212, 0.06), rgba(79, 70, 229, 0.03));
+        border-top: 1px solid rgba(6, 182, 212, 0.25);
+    }
+    
+    :root.light-mode .card-details {
+        background: linear-gradient(to bottom, rgba(6, 182, 212, 0.05), rgba(79, 70, 229, 0.02)) !important;
+        border-top: 1px solid rgba(6, 182, 212, 0.15) !important;
     }
     
     .history-card.active .card-details {
-        max-height: 1000px; /* Large enough to fit any content */
+        /* Gestito dinamicamente tramite JS per avere dimensioni esatte senza ritagli */
     }
     
     .details-content {
@@ -274,21 +279,26 @@
         justify-content: space-between;
     }
 
-    /* Premium Filter Bar */
     .filter-panel {
-        background: rgba(17, 23, 38, 0.45);
-        border: 1px solid var(--border-color);
+        background: linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(6, 182, 212, 0.04) 100%);
+        border: 1px solid rgba(79, 70, 229, 0.35);
         border-radius: 1rem;
         padding: 1.2rem;
         margin-bottom: 2rem;
         backdrop-filter: blur(10px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 8px 32px rgba(79, 70, 229, 0.15);
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 1.2rem;
         align-items: flex-end;
         position: relative;
         overflow: hidden;
+    }
+
+    :root.light-mode .filter-panel {
+        background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(6, 182, 212, 0.03) 100%) !important;
+        border: 1px solid rgba(79, 70, 229, 0.22) !important;
+        box-shadow: 0 8px 32px rgba(79, 70, 229, 0.06) !important;
     }
     
     .filter-panel::before {
@@ -754,13 +764,31 @@
     });
 
     function toggleDetails(card) {
+        const details = card.querySelector('.card-details');
+        if (!details) return;
+
+        const isCurrentlyActive = card.classList.contains('active');
+
         // Chiudi tutti gli altri
         document.querySelectorAll('.history-card').forEach(c => {
-            if (c !== card) c.classList.remove('active');
+            if (c !== card) {
+                c.classList.remove('active');
+                const otherDetails = c.querySelector('.card-details');
+                if (otherDetails) {
+                    otherDetails.style.maxHeight = null;
+                }
+            }
         });
-        
+
         // Toggle quello cliccato
-        card.classList.toggle('active');
+        if (isCurrentlyActive) {
+            card.classList.remove('active');
+            details.style.maxHeight = null;
+        } else {
+            card.classList.add('active');
+            // Imposta maxHeight al scrollHeight esatto dell'elemento per evitare ritagli o spazi extra
+            details.style.maxHeight = details.scrollHeight + "px";
+        }
     }
 
     function prepareAndPrint(groupId, event) {

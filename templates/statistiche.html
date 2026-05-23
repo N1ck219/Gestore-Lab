@@ -1,0 +1,623 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Caricamento Chart.js da CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    .stats-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+    
+    /* KPI Grid */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+    }
+    .kpi-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 1.25rem;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    .kpi-card::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; width: 4px; height: 100%;
+        background: var(--accent-color);
+        opacity: 0.8;
+    }
+    .kpi-card.purple::before { background: var(--primary-color); }
+    .kpi-card.emerald::before { background: var(--success); }
+    .kpi-card.danger::before { background: var(--danger); }
+
+    .kpi-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--border-hover);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+        background: var(--card-hover-bg);
+    }
+    .kpi-icon {
+        font-size: 2.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 55px;
+        height: 55px;
+        border-radius: 1rem;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    .kpi-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    .kpi-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: white;
+        line-height: 1;
+    }
+    .kpi-label {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+    
+    /* Layout Grid dei Grafici */
+    .charts-main-grid {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 2rem;
+    }
+    
+    @media (max-width: 1024px) {
+        .charts-main-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .chart-panel {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 1.25rem;
+        padding: 2rem;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .chart-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        padding-bottom: 1rem;
+    }
+    
+    .chart-panel-title {
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: white;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .chart-selector {
+        background: rgba(0,0,0,0.3);
+        border: 1px solid var(--border-color);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.9rem;
+        outline: none;
+        cursor: pointer;
+        transition: border-color 0.2s;
+        max-width: 250px;
+    }
+    .chart-selector:focus {
+        border-color: var(--accent-color);
+    }
+    
+    .charts-sub-grid {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr;
+        gap: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .charts-sub-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .canvas-container {
+        position: relative;
+        width: 100%;
+        min-height: 250px;
+    }
+</style>
+
+<div class="stats-container">
+    <!-- TITOLO -->
+    <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 0.5rem;">
+        <h2 style="margin: 0; display: flex; align-items: center; gap: 0.75rem;">
+            📊 Statistiche e Data Visualization
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem; margin-bottom: 0;">
+            Analisi in tempo reale dei consumi di magazzino, cicli di lavoro e tracciabilità QC.
+        </p>
+    </div>
+
+    <!-- KPI BADGES -->
+    <div class="kpi-grid">
+        <!-- Totale Scarichi -->
+        <div class="kpi-card">
+            <div class="kpi-icon" style="color: var(--accent-color);">⚖️</div>
+            <div class="kpi-info">
+                <div class="kpi-value">{{ tot_scarichi }}</div>
+                <div class="kpi-label">Prelievi Totali</div>
+            </div>
+        </div>
+        <!-- Lotti Attivi -->
+        <div class="kpi-card purple">
+            <div class="kpi-icon" style="color: var(--primary-color);">📦</div>
+            <div class="kpi-info">
+                <div class="kpi-value">{{ tot_lotti_attivi }}</div>
+                <div class="kpi-label">Lotti Attivi in Giacenza</div>
+            </div>
+        </div>
+        <!-- Maggior Consumo -->
+        <div class="kpi-card emerald">
+            <div class="kpi-icon" style="color: var(--success);">🔥</div>
+            <div class="kpi-info">
+                <div class="kpi-value" style="font-size: 1.2rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">
+                    {% if maggior_consumo %}
+                        {{ maggior_consumo.nome_mp }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+                <div class="kpi-label">
+                    {% if maggior_consumo %}
+                        Top Consumo: <strong>{{ maggior_consumo.totale }} {{ maggior_consumo.unita_misura }}</strong>
+                    {% else %}
+                        Nessun consumo recente
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <!-- Prelievi Oggi -->
+        <div class="kpi-card danger">
+            <div class="kpi-icon" style="color: var(--danger);">📅</div>
+            <div class="kpi-info">
+                <div class="kpi-value">{{ prelievi_oggi }}</div>
+                <div class="kpi-label">Scarichi Registrati Oggi</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRIGLIA PRINCIPALE GRAFICI -->
+    <div class="charts-main-grid">
+        <!-- 1. Grafico Dinamico Consumi -->
+        <div class="chart-panel">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">📈 Andamento Temporale Consumi</h3>
+                <select id="mpSelector" class="chart-selector" onchange="loadDynamicChart(this.value)">
+                    {% for mp in materie %}
+                        <option value="{{ mp.codice }}" {% if loop.first %}selected{% endif %}>{{ mp.nome_mp }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="canvas-container" style="min-height: 380px;">
+                <canvas id="dynamicChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 2. Grafico Top 5 Materie Consumate -->
+        <div class="chart-panel">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">🏆 Top 5 Materie Prime più Consumate</h3>
+            </div>
+            <div class="canvas-container" style="min-height: 380px; display: flex; align-items: center;">
+                <canvas id="topChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRIGLIA SECONDARIA GRAFICI -->
+    <div class="charts-sub-grid">
+        <!-- 3. Distribuzione Causali -->
+        <div class="chart-panel">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">🍩 Causali di Prelievo</h3>
+            </div>
+            <div class="canvas-container" style="min-height: 300px; display: flex; align-items: center; justify-content: center;">
+                <canvas id="causaliChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 4. Lotti Registrati -->
+        <div class="chart-panel">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">🏭 Lotti Registrati / Cicli negli ultimi 6 Mesi</h3>
+            </div>
+            <div class="canvas-container" style="min-height: 300px;">
+                <canvas id="lottiChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Configurazione e stili globali per Chart.js in tema Dark (Default)
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
+    Chart.defaults.font.size = 11;
+    Chart.defaults.plugins.tooltip.backgroundColor = '#1e293b';
+    Chart.defaults.plugins.tooltip.titleColor = '#fff';
+    Chart.defaults.plugins.tooltip.bodyColor = '#cbd5e1';
+    Chart.defaults.plugins.tooltip.borderColor = '#334155';
+    Chart.defaults.plugins.tooltip.borderWidth = 1;
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    
+    // --- GRAFICI ISTANZE GLOBALI PER AGGIORNAMENTO DI TEMA RUNTIME ---
+    let dynamicChartInstance = null;
+    let topChartInstance = null;
+    let causaliChartInstance = null;
+    let lottiChartInstance = null;
+    
+    // Funzione globale per aggiornare i grafici quando si passa da Giorno/Notte
+    window.updateChartsTheme = function() {
+        const isLight = document.documentElement.classList.contains('light-mode');
+        
+        // Aggiorna default globali di Chart.js
+        Chart.defaults.color = isLight ? '#334155' : '#94a3b8';
+        Chart.defaults.plugins.tooltip.backgroundColor = isLight ? '#ffffff' : '#1e293b';
+        Chart.defaults.plugins.tooltip.titleColor = isLight ? '#0f172a' : '#fff';
+        Chart.defaults.plugins.tooltip.bodyColor = isLight ? '#334155' : '#cbd5e1';
+        Chart.defaults.plugins.tooltip.borderColor = isLight ? '#cbd5e1' : '#334155';
+        
+        const gridColor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.03)';
+        const borderColor = isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.05)';
+        
+        // 1. Aggiorna Dynamic Chart
+        if (dynamicChartInstance) {
+            dynamicChartInstance.options.scales.x.grid.color = gridColor;
+            dynamicChartInstance.options.scales.x.grid.borderColor = borderColor;
+            dynamicChartInstance.options.scales.y.grid.color = gridColor;
+            dynamicChartInstance.options.scales.y.grid.borderColor = borderColor;
+            dynamicChartInstance.options.plugins.legend.labels.color = isLight ? '#334155' : '#94a3b8';
+            dynamicChartInstance.update();
+        }
+        
+        // 2. Aggiorna Top Chart
+        if (topChartInstance) {
+            topChartInstance.options.scales.x.grid.color = gridColor;
+            topChartInstance.options.scales.y.ticks.color = isLight ? '#334155' : '#94a3b8';
+            topChartInstance.update();
+        }
+        
+        // 3. Aggiorna Causali Chart
+        if (causaliChartInstance) {
+            causaliChartInstance.options.plugins.legend.labels.color = isLight ? '#334155' : '#94a3b8';
+            causaliChartInstance.update();
+        }
+        
+        // 4. Aggiorna Lotti Chart
+        if (lottiChartInstance) {
+            lottiChartInstance.options.scales.x.grid.color = gridColor;
+            lottiChartInstance.options.scales.y.grid.color = gridColor;
+            lottiChartInstance.update();
+        }
+    }
+    
+    // --- GRAFICO DINAMICO: ANDAMENTO TEMPORALE CONSUMI ---
+    function loadDynamicChart(codiceMp) {
+        fetch(`/api/stats/consumi/${codiceMp}`)
+            .then(res => res.json())
+            .then(data => {
+                const ctx = document.getElementById('dynamicChart').getContext('2d');
+                
+                // Mappa i mesi e i totali
+                let labels = [];
+                let values = [];
+                let unita = 'Pz';
+                let nomeMp = 'Materia Prima';
+                
+                if (data && data.length > 0) {
+                    nomeMp = data[0].nome_mp || nomeMp;
+                    unita = data[0].unita_misura || unita;
+                    
+                    // Se c'è solo un dato vuoto inserito per assenza consumi
+                    if (data.length === 1 && data[0].totale === 0) {
+                        labels = [data[0].mese];
+                        values = [0];
+                    } else {
+                        labels = data.map(item => {
+                            // Formatta mese AAAA-MM in formato leggibile "Mese AA"
+                            const parts = item.mese.split('-');
+                            if(parts.length === 2) {
+                                const mesi = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
+                                const idx = parseInt(parts[1], 10) - 1;
+                                return `${mesi[idx]} ${parts[0].substring(2)}`;
+                            }
+                            return item.mese;
+                        });
+                        values = data.map(item => item.totale);
+                    }
+                }
+                
+                // Crea gradiente sfumato premium sotto l'area
+                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                gradient.addColorStop(0, 'rgba(6, 182, 212, 0.4)');
+                gradient.addColorStop(1, 'rgba(6, 182, 212, 0.0)');
+                
+                if (dynamicChartInstance) {
+                    dynamicChartInstance.destroy();
+                }
+                
+                const isLight = document.documentElement.classList.contains('light-mode');
+                const gridColor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.03)';
+                const borderColor = isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.05)';
+                
+                dynamicChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: `Consumo mensile (${unita})`,
+                            data: values,
+                            borderColor: '#06b6d4',
+                            borderWidth: 3,
+                            backgroundColor: gradient,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#06b6d4',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 15,
+                                    color: isLight ? '#334155' : '#94a3b8'
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    color: gridColor,
+                                    borderColor: borderColor
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    color: gridColor,
+                                    borderColor: borderColor
+                                },
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            });
+    }
+
+    // --- GRAFICO STATICO 1: TOP 5 MATERIE CONSUMATE ---
+    function initTopChart() {
+        const ctx = document.getElementById('topChart').getContext('2d');
+        const data = {{ top_materie | tojson }};
+        
+        const labels = data.map(item => item.nome_mp);
+        const values = data.map(item => item.totale);
+        
+        // Gradiente barre
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, '#4f46e5'); // Indaco
+        gradient.addColorStop(1, '#06b6d4'); // Ciano
+        
+        if (topChartInstance) {
+            topChartInstance.destroy();
+        }
+        
+        const isLight = document.documentElement.classList.contains('light-mode');
+        const gridColor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.03)';
+        
+        topChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Consumo Totale di Sempre',
+                    data: values,
+                    backgroundColor: gradient,
+                    borderRadius: 8,
+                    borderWidth: 0,
+                    barThickness: 24
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Rende le barre orizzontali
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: gridColor },
+                        beginAtZero: true
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: {
+                            color: isLight ? '#334155' : '#94a3b8',
+                            // Tronca scritte se troppo lunghe
+                            callback: function(value) {
+                                const label = this.getLabelForValue(value);
+                                if (label.length > 25) {
+                                    return label.substring(0, 22) + '...';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // --- GRAFICO STATICO 2: DISTRIBUZIONE CAUSALI ---
+    function initCausaliChart() {
+        const ctx = document.getElementById('causaliChart').getContext('2d');
+        const data = {{ causali | tojson }};
+        
+        const labels = data.map(item => item.causale || 'Manuale');
+        const values = data.map(item => item.conteggio);
+        
+        const palette = [
+            '#4f46e5', // Indaco
+            '#06b6d4', // Ciano
+            '#10b981', // Smeraldo
+            '#f59e0b', // Ambra
+            '#f43f5e', // Rosa corallo
+            '#8b5cf6'  // Viola
+        ];
+        
+        if (causaliChartInstance) {
+            causaliChartInstance.destroy();
+        }
+        
+        const isLight = document.documentElement.classList.contains('light-mode');
+        
+        causaliChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: palette.slice(0, labels.length),
+                    borderWidth: 2,
+                    borderColor: isLight ? '#ffffff' : '#111726',
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 10,
+                            padding: 15,
+                            color: isLight ? '#334155' : '#94a3b8'
+                        }
+                    }
+                },
+                cutout: '65%' // Diametro del buco della ciambella
+            }
+        });
+    }
+
+    // --- GRAFICO STATICO 3: LOTTI REGISTRATI MENSILMENTE ---
+    function initLottiChart() {
+        const ctx = document.getElementById('lottiChart').getContext('2d');
+        const data = {{ lotti_mensili | tojson }};
+        
+        const labels = data.map(item => {
+            const parts = item.mese.split('-');
+            if(parts.length === 2) {
+                const mesi = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
+                return `${mesi[parseInt(parts[1], 10) - 1]} ${parts[0].substring(2)}`;
+            }
+            return item.mese;
+        });
+        const values = data.map(item => item.conteggio);
+        
+        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+        gradient.addColorStop(0, 'rgba(139, 92, 246, 0.4)');
+        gradient.addColorStop(1, 'rgba(139, 92, 246, 0.0)');
+        
+        if (lottiChartInstance) {
+            lottiChartInstance.destroy();
+        }
+        
+        const isLight = document.documentElement.classList.contains('light-mode');
+        const gridColor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.03)';
+        
+        lottiChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Nuovi Lotti Arrivati',
+                    data: values,
+                    borderColor: '#8b5cf6', // Viola
+                    borderWidth: 3,
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#8b5cf6',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { grid: { color: gridColor } },
+                    y: {
+                        grid: { color: gridColor },
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+    }
+
+    // Inizializzazione di tutti i grafici all'avvio della pagina
+    window.addEventListener('DOMContentLoaded', () => {
+        // Applica subito i colori del tema prima di creare i grafici
+        updateChartsTheme();
+        
+        const defaultMp = document.getElementById('mpSelector').value;
+        if (defaultMp) {
+            loadDynamicChart(defaultMp);
+        }
+        initTopChart();
+        initCausaliChart();
+        initLottiChart();
+    });
+</script>
+{% endblock %}

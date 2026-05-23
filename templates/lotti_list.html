@@ -4,18 +4,65 @@
 <!-- DataTables CSS -->
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 <style>
-    .dataTables_wrapper { color: var(--text-secondary); }
-    .dataTables_length select, .dataTables_filter input {
+    /* Widen the parent container specifically on this page */
+    .container {
+        max-width: 95% !important;
+    }
+
+    .table-container {
+        overflow: visible !important;
+    }
+
+    .dataTables_wrapper {
+        color: var(--text-secondary);
+    }
+
+    .dataTables_length select,
+    .dataTables_filter input {
         background-color: var(--card-bg) !important;
         color: white !important;
         border: 1px solid var(--border-color) !important;
         border-radius: 0.5rem;
         padding: 5px;
     }
-    table.dataTable thead th { border-bottom: 1px solid var(--border-color); color: var(--text-secondary); }
-    table.dataTable tbody tr { cursor: pointer; transition: background 0.2s; }
-    table.dataTable tbody tr:hover { background: rgba(56, 189, 248, 0.05) !important; }
-    
+
+    table.dataTable {
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+    }
+
+    table.dataTable thead th {
+        border-bottom: 2px solid var(--border-color) !important;
+        color: var(--text-secondary);
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 100 !important;
+        background-color: var(--card-bg) !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    table.dataTable tbody tr {
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    table.dataTable tbody tr:hover {
+        background: rgba(56, 189, 248, 0.05) !important;
+    }
+
+    #lottiTable th,
+    #lottiTable td {
+        white-space: nowrap !important;
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+
+    #lottiTable td:nth-child(2),
+    #lottiTable th:nth-child(2) {
+        text-align: left !important;
+        white-space: normal !important;
+    }
+
     .status-badge {
         display: inline-block;
         width: 35px;
@@ -28,24 +75,45 @@
         cursor: pointer;
         transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
     }
+
     .status-badge:hover {
         transform: scale(1.1);
         filter: brightness(1.2);
     }
-    .status-ok { background-color: var(--success); color: white; }
-    .status-none { background-color: #334155; color: #64748b; }
+
+    .status-ok {
+        background-color: var(--success);
+        color: white;
+    }
+
+    .status-none,
+    .qc-grey {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        color: rgba(255, 255, 255, 0.3) !important;
+        border: 1px dashed rgba(255, 255, 255, 0.15) !important;
+    }
+
+    :root.light-mode .status-none,
+    :root.light-mode .qc-grey {
+        background-color: rgba(0, 0, 0, 0.04) !important;
+        color: rgba(0, 0, 0, 0.35) !important;
+        border: 1px dashed rgba(0, 0, 0, 0.12) !important;
+    }
 
     @keyframes pulseWarning {
         0% {
             box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
         }
+
         70% {
             box-shadow: 0 0 0 8px rgba(245, 158, 11, 0);
         }
+
         100% {
             box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
         }
     }
+
     .pulse-warning {
         animation: pulseWarning 2.0s infinite;
     }
@@ -58,10 +126,11 @@
         top: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(0,0,0,0.8);
+        background-color: rgba(0, 0, 0, 0.8);
         backdrop-filter: blur(5px);
         overflow-y: auto;
     }
+
     .modal-content {
         background-color: var(--card-bg);
         margin: 2% auto;
@@ -72,15 +141,37 @@
         border-radius: 1rem;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     }
-    .close { color: var(--text-secondary); float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-    
-    .detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-top: 1.5rem; }
-    .detail-item { margin-bottom: 1rem; }
-    .detail-label { color: var(--text-secondary); font-size: 0.75rem; display: block; margin-bottom: 4px; }
-    
-    input, select {
+
+    .close {
+        color: var(--text-secondary);
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .detail-item {
+        margin-bottom: 1rem;
+    }
+
+    .detail-label {
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    input,
+    select {
         width: 100%;
-        background: rgba(255,255,255,0.03);
+        background: rgba(255, 255, 255, 0.03);
         border: 1px solid var(--border-color);
         padding: 8px;
         border-radius: 4px;
@@ -88,9 +179,11 @@
     }
 </style>
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+<div
+    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
     <h2 style="margin: 0;">📦 Registro Lotti</h2>
-    <a href="{{ url_for('add_lotto') }}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+    <a href="{{ url_for('add_lotto') }}" class="btn btn-primary"
+        style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
         <span>➕ Nuovo Lotto</span>
     </a>
 </div>
@@ -104,49 +197,60 @@
                 <th>Data Arrivo</th>
                 <th>Scadenza</th>
                 <th>Giacenza</th>
-                <th>Etichetta Bianca</th>
+                <th>Et. Bianca</th>
                 <th>QC</th>
                 <th>APPR.</th>
-                <th>Etichetta Verde</th>
+                <th>Et. Verde</th>
                 <th>CC</th>
-                <th>Lista Distribuzione</th>
+                <th>Lista Distr</th>
             </tr>
         </thead>
         <tbody>
             {% for lotto in lotti %}
             <tr onclick="showDetails({{ lotto | tojson | forceescape }})">
-                <td><span class="badge" style="background: rgba(129, 140, 248, 0.1); color: #818cf8;">{{ lotto['lotto_interno'] }}</span></td>
+                <td><span class="badge" style="background: rgba(129, 140, 248, 0.1); color: #818cf8;">{{
+                        lotto['lotto_interno'] }}</span></td>
                 <td><strong>{{ lotto['nome_mp'] or 'N.D.' }}</strong></td>
                 <td><small>{{ lotto['data_arrivo'] | dateformat }}</small></td>
                 <td><small>{{ lotto['data_scadenza'] | dateformat }}</small></td>
                 <td><strong style="color: var(--accent-color)">{{ lotto['giacenza'] or '-' }}</strong></td>
                 <td onclick="handleEtichettaBiancaClick(event, {{ lotto | tojson | forceescape }})">
                     {% if lotto['has_bianco'] and lotto['has_bianco'] > 0 %}
-                        <span class="status-badge status-ok-white" style="background: rgba(255, 255, 255, 0.85); color: #0f172a; border: 1px solid #ffffff; font-weight: bold; box-shadow: 0 2px 4px rgba(255,255,255,0.1);">OK</span>
+                    <span class="status-badge status-ok-white"
+                        style="background: rgba(255, 255, 255, 0.85); color: #0f172a; border: 1px solid #ffffff; font-weight: bold; box-shadow: 0 2px 4px rgba(255,255,255,0.1);">OK</span>
                     {% else %}
-                        <span class="status-badge status-none">-</span>
+                    <span class="status-badge status-none">-</span>
                     {% endif %}
                 </td>
-                <td onclick="handleQcClick(event, {{ lotto | tojson | forceescape }})" oncontextmenu="handleQcRightClick(event, {{ lotto | tojson | forceescape }})">
+                <td onclick="handleQcClick(event, {{ lotto | tojson | forceescape }})"
+                    oncontextmenu="handleQcRightClick(event, {{ lotto | tojson | forceescape }})">
                     {% if lotto['data_consegna_qc'] and lotto['data_consegna_qc'] != '-' %}
-                        <span class="status-badge qc-green" style="background-color: var(--success); color: white;">QC</span>
+                    <span class="status-badge qc-green"
+                        style="background-color: var(--success); color: white;">QC</span>
                     {% elif lotto['qc_attesa'] == 'SI' %}
-                        <span class="status-badge qc-yellow pulse-warning" style="background-color: var(--warning); color: white;">QC</span>
+                    <span class="status-badge qc-yellow pulse-warning"
+                        style="background-color: var(--warning); color: white;">QC</span>
                     {% else %}
-                        <span class="status-badge qc-grey" style="background-color: #475569; color: #cbd5e1;">QC</span>
+                    <span class="status-badge qc-grey">QC</span>
                     {% endif %}
                 </td>
-                <td onclick="handleApprClick(event, {{ lotto | tojson | forceescape }})">{% if lotto['appr']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
+                <td onclick="handleApprClick(event, {{ lotto | tojson | forceescape }})">{% if lotto['appr']|lower in
+                    ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span
+                        class="status-badge status-none">-</span>{% endif %}</td>
                 <td onclick="handleEtichettaVerdeClick(event, {{ lotto | tojson | forceescape }})">
-                    {% if (lotto['has_verde'] and lotto['has_verde'] > 0) or lotto['etich']|lower in ['ok', 'si', 'sì'] %}
-                        <span class="status-badge status-ok">OK</span>
+                    {% if (lotto['has_verde'] and lotto['has_verde'] > 0) or lotto['etich']|lower in ['ok', 'si', 'sì']
+                    %}
+                    <span class="status-badge status-ok">OK</span>
                     {% else %}
-                        <span class="status-badge status-none">-</span>
+                    <span class="status-badge status-none">-</span>
                     {% endif %}
                 </td>
-                <td onclick="handleCcClick(event, {{ lotto | tojson | forceescape }})">{% if lotto['cc']|lower in ['ok', 'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span class="status-badge status-none">-</span>{% endif %}</td>
+                <td onclick="handleCcClick(event, {{ lotto | tojson | forceescape }})">{% if lotto['cc']|lower in ['ok',
+                    'si', 'sì'] %}<span class="status-badge status-ok">OK</span>{% else %}<span
+                        class="status-badge status-none">-</span>{% endif %}</td>
                 <td onclick="handlePdfClick(event, '{{ lotto['lotto_interno'] }}')">
-                    <span class="status-badge" style="background-color: var(--primary-color); color: white; width: auto; padding: 0 10px;">Lista Distribuzione</span>
+                    <span class="status-badge"
+                        style="background-color: var(--primary-color); color: white; width: auto; padding: 0 15px;">Salva</span>
                 </td>
             </tr>
             {% endfor %}
@@ -159,46 +263,114 @@
     <div class="modal-content">
         <span class="close" onclick="closeModal()">&times;</span>
         <h2 id="m-lotto-titolo" style="color: var(--accent-color); margin-bottom: 1rem;">Dettaglio Lotto</h2>
-        
+
         <form action="{{ url_for('update_lotto') }}" method="post">
             <input type="hidden" name="lotto_interno" id="m-lotto-val">
-            
+
             <div class="detail-grid">
                 <div class="detail-item">
                     <span class="detail-label">Materia Prima</span>
                     <select name="codice_mp" id="m-codice-mp">
                         {% for mp in materie %}
-                            <option value="{{ mp['codice'] }}">{{ mp['nome_mp'] }}</option>
+                        <option value="{{ mp['codice'] }}">{{ mp['nome_mp'] }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="detail-item"><span class="detail-label">Data Arrivo</span><input type="date" name="data_arrivo" id="m-data-arrivo"></div>
-                <div class="detail-item"><span class="detail-label">Data Scadenza</span><input type="date" name="data_scadenza" id="m-data-scad"></div>
-                
-                <div class="detail-item"><span class="detail-label">Fornitore</span><input type="text" name="fornitore" id="m-fornitore"></div>
-                <div class="detail-item"><span class="detail-label">Lotto Fornitore</span><input type="text" name="lotto_fornitore" id="m-lotto-forn"></div>
-                <div class="detail-item"><span class="detail-label">Codice Lotto</span><input type="text" name="codice_lotto" id="m-cod-lotto"></div>
+                <div class="detail-item"><span class="detail-label">Data Arrivo</span><input type="date"
+                        name="data_arrivo" id="m-data-arrivo"></div>
+                <div class="detail-item"><span class="detail-label">Data Scadenza</span><input type="date"
+                        name="data_scadenza" id="m-data-scad"></div>
 
-                <div class="detail-item"><span class="detail-label">Qnt Arrivata</span><input type="text" name="qnt_arrivata" id="m-qnt"></div>
-                <div class="detail-item"><span class="detail-label">Pz x cf</span><input type="text" name="pz_x_cf" id="m-pz"></div>
-                <div class="detail-item"><span class="detail-label">Giacenza (Auto)</span><input type="text" name="giacenza" id="m-giacenza" readonly style="background: rgba(0,0,0,0.2); cursor: not-allowed;"></div>
+                <div class="detail-item"><span class="detail-label">Fornitore</span><input type="text" name="fornitore"
+                        id="m-fornitore"></div>
+                <div class="detail-item"><span class="detail-label">Lotto Fornitore</span><input type="text"
+                        name="lotto_fornitore" id="m-lotto-forn"></div>
+                <div class="detail-item"><span class="detail-label">Codice Lotto</span><input type="text"
+                        name="codice_lotto" id="m-cod-lotto"></div>
 
-                <div class="detail-item"><span class="detail-label">Consegna QC</span><input type="date" name="data_consegna_qc" id="m-qc"></div>
-                <div class="detail-item"><span class="detail-label">Approvazione</span><input type="date" name="data_approvazione" id="m-appr-data"></div>
-                <div class="detail-item"><span class="detail-label">Arrivo Magazzino</span><input type="date" name="arrivo_magazzino" id="m-mag"></div>
+                <div class="detail-item"><span class="detail-label">Qnt Arrivata</span><input type="text"
+                        name="qnt_arrivata" id="m-qnt"></div>
+                <div class="detail-item">
+                    <span class="detail-label">
+                        Pz x cf
+                        <span class="tooltip-wrapper" tabindex="0">
+                            <span class="tooltip-trigger">🛈</span>
+                            <span class="tooltip-text">
+                                <strong>Pezzi per Confezione (Pz x Cf)</strong><br>
+                                Numero di flaconi, fiale o unità elementari contenuti in ciascuna confezione del lotto.<br>
+                                <span class="tooltip-constraint">⚠️ <strong>Vincolo:</strong> Deve essere un numero intero positivo. Obbligatorio per calcolare la giacenza.</span>
+                            </span>
+                        </span>
+                    </span>
+                    <input type="text" name="pz_x_cf" id="m-pz">
+                </div>
+                <div class="detail-item"><span class="detail-label">Giacenza (Auto)</span><input type="text"
+                        name="giacenza" id="m-giacenza" readonly
+                        style="background: rgba(0,0,0,0.2); cursor: not-allowed;"></div>
 
-                <div class="detail-item"><span class="detail-label">Consumi (Auto)</span><input type="text" name="consumi" id="m-consumi" readonly style="background: rgba(0,0,0,0.2); cursor: not-allowed;"></div>
-                <div class="detail-item"><span class="detail-label">C.A.</span><input type="text" name="ca" id="m-ca"></div>
-                <div class="detail-item"><span class="detail-label">Reparto</span><input type="text" name="reparto" id="m-rep"></div>
+                <div class="detail-item"><span class="detail-label">Consegna QC</span><input type="date"
+                        name="data_consegna_qc" id="m-qc"></div>
+                <div class="detail-item"><span class="detail-label">Approvazione</span><input type="date"
+                        name="data_approvazione" id="m-appr-data"></div>
+                <div class="detail-item"><span class="detail-label">Arrivo Magazzino</span><input type="date"
+                        name="arrivo_magazzino" id="m-mag"></div>
 
-                <div class="detail-item"><span class="detail-label">Appr. (Auto)</span><input type="text" name="appr" id="m-appr" readonly style="background: rgba(0,0,0,0.2); cursor: not-allowed;"></div>
-                <div class="detail-item"><span class="detail-label">Etich. (Auto)</span><input type="text" name="etich" id="m-etich" readonly style="background: rgba(0,0,0,0.2); cursor: not-allowed;"></div>
-                <div class="detail-item"><span class="detail-label">CC (Auto)</span><input type="text" name="cc" id="m-cc" readonly style="background: rgba(0,0,0,0.2); cursor: not-allowed;"></div>
+                <div class="detail-item"><span class="detail-label">Consumi (Auto)</span><input type="text"
+                        name="consumi" id="m-consumi" readonly
+                        style="background: rgba(0,0,0,0.2); cursor: not-allowed;"></div>
+                <div class="detail-item">
+                    <span class="detail-label">
+                        C.A.
+                        <span class="tooltip-wrapper" tabindex="0">
+                            <span class="tooltip-trigger">🛈</span>
+                            <span class="tooltip-text">
+                                <strong>Certificato di Analisi (C.A.)</strong><br>
+                                Numero identificativo o codice del Certificato di Analisi rilasciato dal fornitore.<br>
+                                <span class="tooltip-constraint">⚠️ <strong>Vincolo:</strong> Testo libero. Deve corrispondere al documento cartaceo/PDF allegato per la tracciabilità.</span>
+                            </span>
+                        </span>
+                    </span>
+                    <input type="text" name="ca" id="m-ca">
+                </div>
+                <div class="detail-item"><span class="detail-label">Reparto</span><input type="text" name="reparto"
+                        id="m-rep"></div>
+
+                <div class="detail-item">
+                    <span class="detail-label">
+                        Appr. (Auto)
+                        <span class="tooltip-wrapper" tabindex="0">
+                            <span class="tooltip-trigger">🛈</span>
+                            <span class="tooltip-text">
+                                <strong>Stato Approvazione QC (Auto)</strong><br>
+                                Stato di conformità del Controllo Qualità per l'utilizzo del lotto.<br>
+                                <span class="tooltip-constraint">⚠️ <strong>Vincolo:</strong> Calcolato in automatico. Diventa <strong>OK</strong> solo inserendo la Data di Approvazione QC, altrimenti rimane in Quarantena <strong>-</strong>.</span>
+                            </span>
+                        </span>
+                    </span>
+                    <input type="text" name="appr" id="m-appr" readonly style="background: rgba(0,0,0,0.2); cursor: not-allowed;">
+                </div>
+                <div class="detail-item"><span class="detail-label">Etich. (Auto)</span><input type="text" name="etich"
+                        id="m-etich" readonly style="background: rgba(0,0,0,0.2); cursor: not-allowed;"></div>
+                <div class="detail-item">
+                    <span class="detail-label">
+                        CC (Auto)
+                        <span class="tooltip-wrapper" tabindex="0">
+                            <span class="tooltip-trigger">🛈</span>
+                            <span class="tooltip-text">
+                                <strong>Controcampione (CC)</strong><br>
+                                Stato del prelievo del campione di riserva da conservare in archivio.<br>
+                                <span class="tooltip-constraint">⚠️ <strong>Vincolo:</strong> Calcolato in automatico. Diventa <strong>SI</strong> solo registrando uno scarico dedicato con causale 'Controcampione'.</span>
+                            </span>
+                        </span>
+                    </span>
+                    <input type="text" name="cc" id="m-cc" readonly style="background: rgba(0,0,0,0.2); cursor: not-allowed;">
+                </div>
             </div>
 
             <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                 <button type="submit" class="btn btn-primary" style="flex: 1;">💾 Salva Modifiche</button>
-                <button type="button" class="btn" style="background: rgba(255,255,255,0.05); color: white;" onclick="closeModal()">Annulla</button>
+                <button type="button" class="btn" style="background: rgba(255,255,255,0.05); color: white;"
+                    onclick="closeModal()">Annulla</button>
             </div>
         </form>
     </div>
@@ -212,17 +384,20 @@
             <span>✔️</span> Approva Lotto
         </h3>
         <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.5;">
-            Inserisci la data di approvazione per il lotto <strong id="appr-lotto-code" style="color: white; background: rgba(6,182,212,0.15); padding: 2px 6px; border-radius: 4px;"></strong>:
+            Inserisci la data di approvazione per il lotto <strong id="appr-lotto-code"
+                style="color: white; background: rgba(6,182,212,0.15); padding: 2px 6px; border-radius: 4px;"></strong>:
         </p>
         <form id="apprForm" onsubmit="submitApproval(event)">
             <input type="hidden" id="appr-lotto-val" name="lotto_interno">
             <div class="form-group" style="margin-bottom: 1.5rem;">
                 <label for="appr-date">Data Approvazione *</label>
-                <input type="date" id="appr-date" name="data_approvazione" required style="border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                <input type="date" id="appr-date" name="data_approvazione" required
+                    style="border: 1px solid var(--border-color); border-radius: 0.5rem;">
             </div>
             <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                 <button type="submit" class="btn btn-primary" style="flex: 1;">Registra</button>
-                <button type="button" class="btn" style="background: rgba(255,255,255,0.05); color: white; flex: 1;" onclick="closeApprModal()">Annulla</button>
+                <button type="button" class="btn" style="background: rgba(255,255,255,0.05); color: white; flex: 1;"
+                    onclick="closeApprModal()">Annulla</button>
             </div>
         </form>
     </div>
@@ -233,7 +408,8 @@
     <div class="modal-content" style="max-width: 450px; text-align: center;">
         <span class="close" onclick="closeInfoModal()">&times;</span>
         <h3 id="info-modal-title" style="color: var(--accent-color); margin-bottom: 1.5rem;">Informazione</h3>
-        <p id="info-modal-text" style="color: var(--text-pale); margin-bottom: 2rem; font-size: 1rem; line-height: 1.6;"></p>
+        <p id="info-modal-text"
+            style="color: var(--text-pale); margin-bottom: 2rem; font-size: 1rem; line-height: 1.6;"></p>
         <button type="button" class="btn btn-primary" style="width: 100%;" onclick="closeInfoModal()">Chiudi</button>
     </div>
 </div>
@@ -242,46 +418,64 @@
 <div id="labelInfoModal" class="modal">
     <div class="modal-content" style="max-width: 500px; padding: 2rem; border-radius: 1.25rem;">
         <span class="close" onclick="closeLabelInfoModal()">&times;</span>
-        <h3 style="color: var(--accent-color); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; font-size: 1.4rem;">
-            <span style="filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));">🏷️</span> Dettagli Generazione Etichette
+        <h3
+            style="color: var(--accent-color); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; font-size: 1.4rem;">
+            <span style="filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));">🏷️</span> Dettagli Generazione
+            Etichette
         </h3>
-        
-        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+
+        <div
+            style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">LOTTO INTERNO</div>
-            <div id="info-lotto-valore" style="font-size: 1.2rem; font-weight: bold; color: white; letter-spacing: 0.5px;">-</div>
+            <div id="info-lotto-valore"
+                style="font-size: 1.2rem; font-weight: bold; color: white; letter-spacing: 0.5px;">-</div>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
             <!-- Etichetta Bianca -->
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.75rem; transition: transform 0.2s;" onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='none'">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.75rem; transition: transform 0.2s;"
+                onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='none'">
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <div style="width: 10px; height: 10px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 8px #ffffff;"></div>
+                    <div
+                        style="width: 10px; height: 10px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 8px #ffffff;">
+                    </div>
                     <div>
                         <div style="font-weight: 600; color: white; font-size: 0.9rem;">Etichetta Bianca</div>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Standard arrivo materia prima</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Standard arrivo materia prima
+                        </div>
                     </div>
                 </div>
-                <div id="ts-bianca" style="font-size: 0.85rem; color: var(--text-pale); font-family: monospace; font-weight: 500;">-</div>
+                <div id="ts-bianca"
+                    style="font-size: 0.85rem; color: var(--text-pale); font-family: monospace; font-weight: 500;">-
+                </div>
             </div>
 
             <!-- Etichetta Verde -->
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(16, 185, 129, 0.03); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 0.75rem; transition: transform 0.2s;" onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='none'">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(16, 185, 129, 0.03); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 0.75rem; transition: transform 0.2s;"
+                onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='none'">
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success);"></div>
+                    <div
+                        style="width: 10px; height: 10px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success);">
+                    </div>
                     <div>
                         <div style="font-weight: 600; color: white; font-size: 0.9rem;">Etichetta Verde</div>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Approvato & Controllo Qualità</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Approvato & Controllo Qualità
+                        </div>
                     </div>
                 </div>
-                <div id="ts-verde" style="font-size: 0.85rem; color: var(--success); font-family: monospace; font-weight: bold;">-</div>
+                <div id="ts-verde"
+                    style="font-size: 0.85rem; color: var(--success); font-family: monospace; font-weight: bold;">-
+                </div>
             </div>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-            <a id="btn-storico-filtrato" href="#" class="btn btn-primary" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; text-decoration: none; width: 100%; font-weight: 600; padding: 0.75rem;">
+            <a id="btn-storico-filtrato" href="#" class="btn btn-primary"
+                style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; text-decoration: none; width: 100%; font-weight: 600; padding: 0.75rem;">
                 🔍 Vedi nello Storico
             </a>
-            <button type="button" class="btn" style="background: rgba(255,255,255,0.05); color: white; width: 100%;" onclick="closeLabelInfoModal()">Chiudi</button>
+            <button type="button" class="btn" style="background: rgba(255,255,255,0.05); color: white; width: 100%;"
+                onclick="closeLabelInfoModal()">Chiudi</button>
         </div>
     </div>
 </div>
@@ -290,18 +484,24 @@
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
-    $(document).ready(function() {
+    $(document).ready(function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryVal = urlParams.get('q') || '';
+
         $('#lottiTable').DataTable({
             "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json" },
             "pageLength": 25,
-            "order": [[ 2, "desc" ]]
+            "order": [[2, "desc"]],
+            "search": {
+                "search": queryVal
+            }
         });
     });
 
     function showDetails(lotto) {
         document.getElementById('m-lotto-titolo').innerText = "Modifica Lotto: " + lotto.lotto_interno;
         document.getElementById('m-lotto-val').value = lotto.lotto_interno;
-        
+
         document.getElementById('m-codice-mp').value = lotto.codice_mp || '';
         document.getElementById('m-data-arrivo').value = lotto.data_arrivo || '';
         document.getElementById('m-data-scad').value = lotto.data_scadenza || '';
@@ -320,7 +520,7 @@
         document.getElementById('m-appr').value = lotto.appr || '';
         document.getElementById('m-etich').value = lotto.etich || '';
         document.getElementById('m-cc').value = lotto.cc || '';
-        
+
         document.getElementById('detailModal').style.display = "block";
     }
 
@@ -354,19 +554,19 @@
             },
             body: JSON.stringify({ lotto_interno, data_approvazione })
         })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                closeApprModal();
-                window.location.reload();
-            } else {
-                alert("Errore durante l'approvazione: " + data.message);
-            }
-        })
-        .catch(err => {
-            console.error("Errore invio approvazione:", err);
-            alert("Errore di connessione al server.");
-        });
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    closeApprModal();
+                    window.location.reload();
+                } else {
+                    alert("Errore durante l'approvazione: " + data.message);
+                }
+            })
+            .catch(err => {
+                console.error("Errore invio approvazione:", err);
+                alert("Errore di connessione al server.");
+            });
     }
 
     // --- LOGICA CUSTOM INFO MODAL ---
@@ -387,31 +587,31 @@
     // --- LOGICA GENERAZIONE PDF LISTA DISTRIBUZIONE ---
     function handlePdfClick(event, lottoInterno) {
         event.stopPropagation(); // Evita apertura dettagli generali del lotto
-        
+
         fetch(`/api/genera_pdf_distribuzione/${encodeURIComponent(lottoInterno)}`, {
             method: 'POST'
         })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                showCustomAlert("Lista Distribuzione PDF", `Il PDF del lotto <strong>${lottoInterno}</strong> è stato generato e salvato con successo!<br><br>📁 <strong>Cartella:</strong> <code>lista_distribuzione</code><br>📄 <strong>File:</strong> <code>${data.filename}</code>`);
-            } else {
-                showCustomAlert("Errore PDF", "Errore durante la generazione del PDF: " + data.message);
-            }
-        })
-        .catch(err => {
-            console.error("Errore invio richiesta PDF:", err);
-            showCustomAlert("Errore PDF", "Errore di connessione al server.");
-        });
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showCustomAlert("Lista Distribuzione PDF", `Il PDF del lotto <strong>${lottoInterno}</strong> è stato generato e salvato con successo!<br><br>📁 <strong>Cartella:</strong> <code>lista_distribuzione</code><br>📄 <strong>File:</strong> <code>${data.filename}</code>`);
+                } else {
+                    showCustomAlert("Errore PDF", "Errore durante la generazione del PDF: " + data.message);
+                }
+            })
+            .catch(err => {
+                console.error("Errore invio richiesta PDF:", err);
+                showCustomAlert("Errore PDF", "Errore di connessione al server.");
+            });
     }
 
     // --- LOGICA GESTIONE STATO QC ---
     function handleQcClick(event, lotto) {
         event.stopPropagation(); // Evita apertura dettagli generali del lotto
-        
+
         const hasDate = lotto.data_consegna_qc && lotto.data_consegna_qc !== '-';
         const inQueue = lotto.qc_attesa === 'SI';
-        
+
         if (hasDate) {
             // Stato Verde: mostra la data di consegna
             const formattedDate = formatDateDisplay(lotto.data_consegna_qc);
@@ -419,42 +619,42 @@
         } else if (inQueue) {
             // Stato Giallo: stampa la richiesta d'analisi combinata
             showCustomAlert("Generazione Richiesta d'Analisi", `Generazione del PDF combinato per tutti i lotti in lista d'attesa e registrazione della consegna per oggi...<br><br>Attendere prego...`);
-            
+
             setTimeout(() => {
                 fetch('/api/stampa_richiesta_analisi', {
                     method: 'POST'
                 })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        shouldReloadOnClose = true;
-                        showCustomAlert("Stampa Richiesta d'Analisi", `Il PDF combinato delle richieste è stato generato con successo!<br><br>📁 <strong>Cartella:</strong> <code>richiesta_analisi</code><br>📄 <strong>File:</strong> <code>${data.filename}</code><br><br>Tutti i lotti interessati sono stati aggiornati allo stato <strong>QC Consegnato (Verde)</strong>.`);
-                    } else {
-                        showCustomAlert("Errore di Stampa", "Errore durante la generazione della richiesta: " + data.message);
-                    }
-                })
-                .catch(err => {
-                    console.error("Errore stampa richiesta d'analisi:", err);
-                    showCustomAlert("Errore di Stampa", "Errore di connessione al server.");
-                });
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            shouldReloadOnClose = true;
+                            showCustomAlert("Stampa Richiesta d'Analisi", `Il PDF combinato delle richieste è stato generato con successo!<br><br>📁 <strong>Cartella:</strong> <code>richiesta_analisi</code><br>📄 <strong>File:</strong> <code>${data.filename}</code><br><br>Tutti i lotti interessati sono stati aggiornati allo stato <strong>QC Consegnato (Verde)</strong>.`);
+                        } else {
+                            showCustomAlert("Errore di Stampa", "Errore durante la generazione della richiesta: " + data.message);
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Errore stampa richiesta d'analisi:", err);
+                        showCustomAlert("Errore di Stampa", "Errore di connessione al server.");
+                    });
             }, 1000);
         } else {
             // Stato Grigio: aggiungi alla lista d'attesa (diventa Giallo)
             fetch(`/api/aggiungi_attesa_qc/${encodeURIComponent(lotto.lotto_interno)}`, {
                 method: 'POST'
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    showCustomAlert("Errore", "Errore durante l'aggiunta alla lista di attesa: " + data.message);
-                }
-            })
-            .catch(err => {
-                console.error("Errore aggiunta attesa QC:", err);
-                showCustomAlert("Errore", "Errore di connessione al server.");
-            });
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        showCustomAlert("Errore", "Errore durante l'aggiunta alla lista di attesa: " + data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error("Errore aggiunta attesa QC:", err);
+                    showCustomAlert("Errore", "Errore di connessione al server.");
+                });
         }
     }
 
@@ -464,31 +664,31 @@
         if (inQueue) {
             event.preventDefault(); // Impedisce il menu contestuale classico di Chrome
             event.stopPropagation(); // Evita l'apertura dei dettagli del lotto
-            
+
             fetch(`/api/rimuovi_attesa_qc/${encodeURIComponent(lotto.lotto_interno)}`, {
                 method: 'POST'
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    showCustomAlert("Errore", "Errore durante la rimozione dalla lista di attesa: " + data.message);
-                }
-            })
-            .catch(err => {
-                console.error("Errore rimozione attesa QC:", err);
-                showCustomAlert("Errore", "Errore di connessione al server.");
-            });
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        showCustomAlert("Errore", "Errore durante la rimozione dalla lista di attesa: " + data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error("Errore rimozione attesa QC:", err);
+                    showCustomAlert("Errore", "Errore di connessione al server.");
+                });
         }
     }
 
     // --- HANDLER CLICK SPECIFICI COLONNA APPR / CC ---
     function handleApprClick(event, lotto) {
         event.stopPropagation(); // Evita apertura dettagli generali
-        
+
         const isApproved = lotto.appr && (lotto.appr.toLowerCase() === 'ok' || lotto.appr.toLowerCase() === 'si' || lotto.appr.toLowerCase() === 'sì');
-        
+
         if (isApproved) {
             const dataApprFormatted = formatDateDisplay(lotto.data_approvazione);
             showCustomAlert("Approvazione Lotto", `Lotto <strong>${lotto.lotto_interno}</strong> approvato il <strong>${dataApprFormatted}</strong>.`);
@@ -497,11 +697,12 @@
         }
     }
 
+    // --- HANDLER CLICK CC ---
     function handleCcClick(event, lotto) {
         event.stopPropagation(); // Evita apertura dettagli generali
-        
+
         const isCcDone = lotto.cc && (lotto.cc.toLowerCase() === 'ok' || lotto.cc.toLowerCase() === 'si' || lotto.cc.toLowerCase() === 'sì');
-        
+
         if (isCcDone) {
             fetch(`/api/cc_info/${encodeURIComponent(lotto.lotto_interno)}`)
                 .then(res => res.json())
@@ -533,9 +734,9 @@
     // --- HANDLER CLICK ETICHETTA BIANCA ---
     function handleEtichettaBiancaClick(event, lotto) {
         event.stopPropagation(); // Evita l'apertura dei dettagli generali del lotto
-        
+
         const isBiancaOk = lotto.has_bianco && lotto.has_bianco > 0;
-        
+
         if (!isBiancaOk) {
             // Redirige alla pagina per la generazione delle etichette con il lotto già selezionato
             window.location.href = `/nuova_etichetta?lotto=${encodeURIComponent(lotto.lotto_interno)}`;
@@ -548,9 +749,9 @@
     // --- HANDLER CLICK ETICHETTA VERDE ---
     function handleEtichettaVerdeClick(event, lotto) {
         event.stopPropagation(); // Evita l'apertura dei dettagli generali del lotto
-        
+
         const isVerdeOk = (lotto.has_verde && lotto.has_verde > 0) || (lotto.etich && (lotto.etich.toLowerCase() === 'ok' || lotto.etich.toLowerCase() === 'si' || lotto.etich.toLowerCase() === 'sì'));
-        
+
         if (!isVerdeOk) {
             // Redirige alla pagina per la generazione delle etichette con il lotto già selezionato
             window.location.href = `/nuova_etichetta?lotto=${encodeURIComponent(lotto.lotto_interno)}`;
@@ -565,7 +766,7 @@
         document.getElementById('ts-bianca').innerText = 'Caricamento...';
         document.getElementById('ts-verde').innerText = 'Caricamento...';
         document.getElementById('btn-storico-filtrato').href = `/storico_etichetta?q=${encodeURIComponent(lottoInterno)}`;
-        
+
         // Mostra subito il modal
         document.getElementById('labelInfoModal').style.display = "block";
 
@@ -601,16 +802,16 @@
                     return `${parts[2]}-${parts[1]}-${parts[0]}`;
                 }
             }
-        } catch(e) {}
+        } catch (e) { }
         return dateStr;
     }
 
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         let detailModal = document.getElementById('detailModal');
         let apprModal = document.getElementById('apprModal');
         let infoModal = document.getElementById('customInfoModal');
         let labelInfoModal = document.getElementById('labelInfoModal');
-        
+
         if (event.target == detailModal) closeModal();
         if (event.target == apprModal) closeApprModal();
         if (event.target == infoModal) closeInfoModal();

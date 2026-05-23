@@ -2,7 +2,19 @@
 
 {% block content %}
 <div style="display: flex; flex-direction: column; align-items: center; min-height: 60vh; gap: 1.5rem; width: 100%;">
-    <h2 style="font-size: 2rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-align: center;">Dashboard Laboratorio</h2>
+    <!-- Spotlight Universal Search Component -->
+    <div class="search-spotlight-container">
+        <div class="search-spotlight-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="spotlightSearchInput" placeholder="Cerca codice, materia prima o lotto..." autocomplete="off">
+            <button id="clearSearchBtn" class="clear-search-btn" style="display: none;">&times;</button>
+        </div>
+        
+        <!-- Search Results Dropdown -->
+        <div id="spotlightSearchResults" class="search-results-dropdown" style="display: none;">
+            <!-- Risultati caricati via AJAX -->
+        </div>
+    </div>
 
     <style>
         /* Responsive Dashboard Layout */
@@ -273,6 +285,279 @@
                 gap: 1.5rem;
             }
         }
+
+        /* Spotlight Search Premium CSS */
+        .search-spotlight-container {
+            width: 100%;
+            max-width: 650px;
+            margin: 0.5rem auto 1.5rem auto;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .search-spotlight-wrapper {
+            display: flex;
+            align-items: center;
+            background: rgba(17, 23, 38, 0.65);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 0.25rem 1rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .search-spotlight-wrapper:focus-within {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 1px var(--accent-color), 
+                        0 8px 32px rgba(56, 189, 248, 0.15);
+            background: rgba(17, 23, 38, 0.85);
+            transform: scale(1.01);
+        }
+
+        .search-icon {
+            font-size: 1.25rem;
+            margin-right: 0.75rem;
+            color: var(--text-secondary);
+            user-select: none;
+        }
+
+        #spotlightSearchInput {
+            flex: 1;
+            background: transparent !important;
+            border: none !important;
+            outline: none !important;
+            color: white !important;
+            font-size: 1.05rem;
+            padding: 0.6rem 0;
+            font-weight: 500;
+        }
+
+        #spotlightSearchInput::placeholder {
+            color: rgba(255, 255, 255, 0.35);
+        }
+
+        .clear-search-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0 0.5rem;
+            line-height: 1;
+            transition: color 0.2s ease;
+        }
+
+        .clear-search-btn:hover {
+            color: white;
+        }
+
+        /* Results Dropdown */
+        .search-results-dropdown {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            left: 0;
+            right: 0;
+            background: rgba(13, 19, 33, 0.95);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 
+                        0 0 0 1px rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            z-index: 1001;
+            max-height: 450px;
+            overflow-y: auto;
+            animation: slideDownFade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 1rem;
+        }
+
+        @keyframes slideDownFade {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Results Group */
+        .results-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .results-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .results-group-header {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.6rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .results-group-header.mp {
+            color: var(--accent-color);
+        }
+
+        .results-group-header.lotto {
+            color: #ffd166;
+        }
+
+        /* Result Item Row */
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0.85rem;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 0.6rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .result-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-item:hover, .result-item.selected {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--accent-color);
+            transform: translateX(4px);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+        }
+
+        .result-item-main {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            flex: 1;
+            min-width: 0; /* Abilita text-overflow nei figli */
+        }
+
+        .result-item-title {
+            font-weight: 600;
+            font-size: 0.92rem;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .result-item-sub {
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .result-item-badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .result-item-badge.mp-code {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-color);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+        }
+
+        .result-item-badge.lotto-code {
+            background: rgba(245, 158, 11, 0.15);
+            color: #ffd166;
+            border: 1px solid rgba(245, 158, 11, 0.25);
+        }
+
+        /* Result Actions (Buttons) */
+        .result-item-actions {
+            display: flex;
+            gap: 0.4rem;
+            margin-left: 1rem;
+        }
+
+        .action-link {
+            text-decoration: none;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0.35rem 0.65rem;
+            border-radius: 0.4rem;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .action-link.secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-pale);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .action-link.secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .action-link.primary {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-color);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .action-link.primary:hover {
+            background: var(--accent-color);
+            color: #0b0f19;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+
+        .action-link.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #ffd166;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .action-link.warning:hover {
+            background: #ffd166;
+            color: #0b0f19;
+            border-color: #ffd166;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+        }
+
+        /* Empty State inside dropdown */
+        .search-empty-state {
+            padding: 2rem 1rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .search-empty-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .search-empty-title {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-pale);
+        }
     </style>
 
     <div class="dashboard-layout">
@@ -440,4 +725,285 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const searchInput = document.getElementById("spotlightSearchInput");
+    const searchResults = document.getElementById("spotlightSearchResults");
+    const clearBtn = document.getElementById("clearSearchBtn");
+    
+    let debounceTimer;
+    let selectedIndex = -1;
+    
+    // Focus all'Avvio (Navigazione Rapida)
+    if (searchInput) {
+        searchInput.focus();
+    }
+    
+    // Shortcut di Attivazione Globale: '/' o 'Ctrl + K'
+    document.addEventListener("keydown", function(e) {
+        const activeEl = document.activeElement;
+        // Se l'utente sta scrivendo in un input/textarea, non attivare la scorciatoia
+        if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.isContentEditable)) {
+            return;
+        }
+        if (e.key === "/" || (e.ctrlKey && e.key.toLowerCase() === "k")) {
+            if (searchInput) {
+                e.preventDefault();
+                searchInput.focus();
+                searchInput.select();
+            }
+        }
+    });
+    
+    searchInput.addEventListener("input", function() {
+        const query = searchInput.value.trim();
+        
+        // Gestisci visibilità del tasto cancella
+        if (query.length > 0) {
+            clearBtn.style.display = "block";
+        } else {
+            clearBtn.style.display = "none";
+            searchResults.style.display = "none";
+            searchResults.innerHTML = "";
+            selectedIndex = -1; // reset selection
+            return;
+        }
+        
+        // Applica Debounce di 200ms
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            if (query.length < 2) {
+                searchResults.style.display = "none";
+                selectedIndex = -1; // reset selection
+                return;
+            }
+            
+            // Effettua fetch asincrona
+            fetch(`/api/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderSearchResults(data.results, query);
+                    } else {
+                        console.error("Errore ricerca:", data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error("Errore di rete nella ricerca:", err);
+                });
+        }, 200);
+    });
+    
+    // Pulisce la barra di ricerca
+    clearBtn.addEventListener("click", function() {
+        searchInput.value = "";
+        clearBtn.style.display = "none";
+        searchResults.style.display = "none";
+        searchResults.innerHTML = "";
+        searchInput.focus();
+        selectedIndex = -1; // reset selection
+    });
+    
+    // Gestione della Tastiera per Navigazione e Chiusura
+    searchInput.addEventListener("keydown", function(e) {
+        const items = searchResults.querySelectorAll(".result-item");
+        
+        // Esc: Pulizia Rapida & Chiusura
+        if (e.key === "Escape") {
+            searchInput.value = "";
+            clearBtn.style.display = "none";
+            searchResults.style.display = "none";
+            searchResults.innerHTML = "";
+            searchInput.blur();
+            selectedIndex = -1; // reset selection
+            return;
+        }
+        
+        if (items.length === 0 || searchResults.style.display === "none") {
+            return;
+        }
+        
+        // Navigazione con Freccia Giù
+        if (e.key === "ArrowDown" || e.key === "Down") {
+            e.preventDefault();
+            selectedIndex++;
+            if (selectedIndex >= items.length) {
+                selectedIndex = 0; // loop back to start
+            }
+            updateActiveItem(items);
+        }
+        // Navigazione con Freccia Su
+        else if (e.key === "ArrowUp" || e.key === "Up") {
+            e.preventDefault();
+            selectedIndex--;
+            if (selectedIndex < 0) {
+                selectedIndex = items.length - 1; // loop back to end
+            }
+            updateActiveItem(items);
+        }
+        // Selezione con Invio
+        else if (e.key === "Enter") {
+            if (selectedIndex >= 0 && selectedIndex < items.length) {
+                e.preventDefault();
+                const activeItem = items[selectedIndex];
+                const primaryLink = activeItem.querySelector(".action-link");
+                if (primaryLink) {
+                    window.location.href = primaryLink.href;
+                }
+            }
+        }
+    });
+    
+    // Funzione per aggiornare l'elemento attivo e farlo scorrere in vista
+    function updateActiveItem(items) {
+        items.forEach((item, index) => {
+            if (index === selectedIndex) {
+                item.classList.add("selected");
+                item.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            } else {
+                item.classList.remove("selected");
+            }
+        });
+    }
+    
+    // Chiude cliccando all'esterno
+    document.addEventListener("click", function(e) {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.style.display = "none";
+        }
+    });
+    
+    // Riapre cliccando sull'input se c'è testo
+    searchInput.addEventListener("focus", function() {
+        if (searchInput.value.trim().length >= 2 && searchResults.innerHTML !== "") {
+            searchResults.style.display = "block";
+        }
+    });
+    
+    // Renderizza i risultati nel dropdown
+    function renderSearchResults(results, query) {
+        searchResults.innerHTML = "";
+        
+        const hasMp = results.materie_prime && results.materie_prime.length > 0;
+        const hasLotti = results.lotti && results.lotti.length > 0;
+        
+        if (!hasMp && !hasLotti) {
+            searchResults.innerHTML = `
+                <div class="search-empty-state">
+                    <span class="search-empty-icon">🔍</span>
+                    <div class="search-empty-title">Nessun risultato trovato</div>
+                    <div style="font-size: 0.78rem; margin-top: 0.25rem;">Nessuna materia prima o lotto corrispondente a "${escapeHtml(query)}"</div>
+                </div>
+            `;
+            searchResults.style.display = "block";
+            return;
+        }
+        
+        let html = "";
+        
+        // 1. Gruppo Materie Prime
+        if (hasMp) {
+            html += `
+                <div class="results-group">
+                    <div class="results-group-header mp">
+                        📦 Materie Prime (${results.materie_prime.length})
+                    </div>
+            `;
+            
+            results.materie_prime.forEach(mp => {
+                const isSottoScorta = mp.scorta_minima > 0 && mp.giacenza_totale < mp.scorta_minima;
+                const giacenzaColor = isSottoScorta ? "#ff8a9e" : "var(--accent-color)";
+                const giacenzaWeight = isSottoScorta ? "bold" : "500";
+                
+                html += `
+                    <div class="result-item">
+                        <div class="result-item-main">
+                            <div class="result-item-title">${escapeHtml(mp.nome_mp)}</div>
+                            <div class="result-item-sub">
+                                <span class="result-item-badge mp-code">${escapeHtml(mp.codice)}</span>
+                                <span>Giacenza totale: <strong style="color: ${giacenzaColor}; font-weight: ${giacenzaWeight};">${mp.giacenza_totale} ${escapeHtml(mp.unita_misura)}</strong></span>
+                            </div>
+                        </div>
+                        <div class="result-item-actions">
+                            <a href="/list?q=${encodeURIComponent(mp.codice)}" class="action-link secondary" title="Vedi nel Registro Prodotti">📋 Registro</a>
+                            <a href="/lotti?q=${encodeURIComponent(mp.codice)}" class="action-link primary" title="Vedi tutti i lotti di questa materia prima">🔍 Lotti</a>
+                            <a href="/scarico_manuale?materiale_codice=${encodeURIComponent(mp.codice)}&nome_mp=${encodeURIComponent(mp.nome_mp)}" class="action-link warning" title="Registra uno scarico per questo prodotto">📉 Scarica</a>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `</div>`;
+        }
+        
+        // 2. Gruppo Lotti
+        if (hasLotti) {
+            html += `
+                <div class="results-group">
+                    <div class="results-group-header lotto">
+                        🏷️ Lotti Registrati (${results.lotti.length})
+                    </div>
+            `;
+            
+            results.lotti.forEach(lotto => {
+                const isApproved = lotto.appr && (lotto.appr.toLowerCase() === 'ok' || lotto.appr.toLowerCase() === 'si' || lotto.appr.toLowerCase() === 'sì');
+                const apprBadgeColor = isApproved ? "rgba(16, 185, 129, 0.15)" : "rgba(244, 63, 94, 0.15)";
+                const apprBadgeText = isApproved ? "Approvato" : "Non Appr.";
+                const apprTextColor = isApproved ? "var(--success)" : "#ff8a9e";
+                const apprBorder = isApproved ? "rgba(16, 185, 129, 0.25)" : "rgba(244, 63, 94, 0.25)";
+                
+                html += `
+                    <div class="result-item">
+                        <div class="result-item-main">
+                            <div class="result-item-title">${escapeHtml(lotto.nome_mp)}</div>
+                            <div class="result-item-sub">
+                                <span class="result-item-badge lotto-code">${escapeHtml(lotto.lotto_interno)}</span>
+                                <span>Fornitore: <strong>${escapeHtml(lotto.lotto_fornitore)}</strong></span>
+                                <span>Scad: <strong>${escapeHtml(formatDateDisplay(lotto.data_scadenza))}</strong></span>
+                                <span class="result-item-badge" style="background: ${apprBadgeColor}; color: ${apprTextColor}; border: 1px solid ${apprBorder};">${apprBadgeText}</span>
+                            </div>
+                        </div>
+                        <div class="result-item-actions">
+                            <a href="/lotti?q=${encodeURIComponent(lotto.lotto_interno)}" class="action-link secondary" title="Apri il registro su questo lotto">🔎 Vedi Lotto</a>
+                            <a href="/nuova_etichetta?lotto=${encodeURIComponent(lotto.lotto_interno)}" class="action-link primary" title="Stampa etichette per questo lotto">🏷️ Etichetta</a>
+                            <a href="/scarico_manuale?materiale_codice=${encodeURIComponent(lotto.codice_mp)}&lotto_interno=${encodeURIComponent(lotto.lotto_interno)}&nome_mp=${encodeURIComponent(lotto.nome_mp)}" class="action-link warning" title="Scarica quantità da questo lotto">📉 Scarica</a>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `</div>`;
+        }
+        
+        searchResults.innerHTML = html;
+        searchResults.style.display = "block";
+    }
+    
+    // Helper utility per prevenire XSS nei risultati dinamici
+    function escapeHtml(str) {
+        if (!str) return "";
+        return str.toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+    
+    // Helper per formattare la data da YYYY-MM-DD a DD-MM-YYYY
+    function formatDateDisplay(dateStr) {
+        if (!dateStr || dateStr === '-') return '-';
+        try {
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                if (parts[0].length === 4) {
+                    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+            }
+        } catch (e) {}
+        return dateStr;
+    }
+});
+</script>
 {% endblock %}

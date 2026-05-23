@@ -7,6 +7,15 @@
     <title>Lab Manager</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Inizializzazione immediata del tema per evitare sfarfallii visivi (FOUC)
+        (function () {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            }
+        })();
+    </script>
     <style>
         /* Dropdown Impostazioni */
         .header-right {
@@ -23,7 +32,7 @@
         .btn-settings {
             background: rgba(255, 255, 255, 0.05);
             color: var(--text-primary);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
             backdrop-filter: blur(10px);
             padding: 0.6rem 1.2rem;
             border-radius: 0.75rem;
@@ -204,6 +213,9 @@
             </div>
 
             <div class="header-right">
+                <a href="{{ url_for('statistiche') }}" class="btn btn-stats">
+                    📊 Statistiche
+                </a>
                 <div class="dropdown">
                     <button class="btn btn-settings" id="settingsBtn" onclick="toggleSettingsDropdown()">⚙️
                         Impostazioni</button>
@@ -213,6 +225,9 @@
                         <a href="#" onclick="shutdownServer(event)" class="btn-shutdown">🛑 Spegni Applicazione</a>
                     </div>
                 </div>
+                <button class="btn btn-settings" id="themeToggleBtn" onclick="toggleTheme()" style="padding: 0.6rem 0.9rem;" title="Alterna modalità Giorno/Notte">
+                    ☀️ Giorno
+                </button>
             </div>
         </header>
 
@@ -291,6 +306,36 @@
                     });
             }
         }
+
+        // Gestione globale del tema Giorno/Notte
+        function toggleTheme() {
+            const htmlEl = document.documentElement;
+            const themeBtn = document.getElementById("themeToggleBtn");
+            if (htmlEl.classList.contains("light-mode")) {
+                htmlEl.classList.remove("light-mode");
+                localStorage.setItem("theme", "dark");
+                themeBtn.innerHTML = "☀️ Giorno";
+            } else {
+                htmlEl.classList.add("light-mode");
+                localStorage.setItem("theme", "light");
+                themeBtn.innerHTML = "🌙 Notte";
+            }
+            
+            // Aggiorna runtime i grafici di Chart.js se la funzione esiste
+            if (typeof updateChartsTheme === "function") {
+                updateChartsTheme();
+            }
+        }
+
+        // Imposta il testo del pulsante corretto all'avvio in base al tema attivo
+        document.addEventListener("DOMContentLoaded", function () {
+            const themeBtn = document.getElementById("themeToggleBtn");
+            if (document.documentElement.classList.contains("light-mode")) {
+                themeBtn.innerHTML = "🌙 Notte";
+            } else {
+                themeBtn.innerHTML = "☀️ Giorno";
+            }
+        });
     </script>
 </body>
 
