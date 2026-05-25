@@ -86,7 +86,7 @@ echo.
 echo [2/4] Verifica del Virtual Environment (%VENV_NAME%)...
 
 :: Controlla se esiste il virtual environment
-if exist "%TARGET_DIR%\%VENV_NAME%\Scripts\activate.bat" goto venv_pronto
+if exist "%TARGET_DIR%\%VENV_NAME%\Scripts\activate.bat" goto controlla_requirements
 
 echo Virtual environment "%VENV_NAME%" non trovato in "%TARGET_DIR%".
 echo Creazione del virtual environment in corso...
@@ -106,10 +106,17 @@ if %errorlevel% neq 0 (
 )
 echo Virtual environment creato con successo.
 
-:: Se presente requirements.txt, installa le dipendenze
+:controlla_requirements
+:: Se non esiste requirements.txt, non c'è nulla da controllare
 if not exist "%TARGET_DIR%\requirements.txt" goto venv_pronto
 
-echo Installazione delle dipendenze da "%TARGET_DIR%\requirements.txt"...
+:: Confronta requirements.txt con la copia salvata dell'ultima installazione
+fc "%TARGET_DIR%\requirements.txt" "%TARGET_DIR%\%VENV_NAME%\requirements.installed.txt" >nul 2>&1
+if %errorlevel% equ 0 goto venv_pronto
+
+echo Nuove dipendenze rilevate o prima installazione.
+echo Installazione/Aggiornamento delle dipendenze da "%TARGET_DIR%\requirements.txt"...
+
 :: Aggiorna pip nel venv
 "%TARGET_DIR%\%VENV_NAME%\Scripts\python.exe" -m pip install --upgrade pip
 if %errorlevel% neq 0 (
@@ -123,6 +130,9 @@ if %errorlevel% neq 0 (
     echo [ERRORE] Si e verificato un errore durante l'installazione delle dipendenze.
     goto errore_arresto
 )
+
+:: Crea una copia di backup per il prossimo avvio
+copy /y "%TARGET_DIR%\requirements.txt" "%TARGET_DIR%\%VENV_NAME%\requirements.installed.txt" >nul
 
 :venv_pronto
 echo Virtual environment pronto ed esistente in "%TARGET_DIR%\%VENV_NAME%".

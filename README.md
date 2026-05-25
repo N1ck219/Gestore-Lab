@@ -1,43 +1,40 @@
-# 🧪 Gestore-Lab — Gestione Magazzino & Tracciabilità Materie Prime
+# 🧪 Gestore-Lab — Manuale d'Uso e Documentazione di Magazzino
 
-Benvenuto in **Gestore-Lab**, un'applicazione web locale sviluppata in **Python + Flask + SQLite**. Questo software è specificamente progettato per soddisfare i rigorosi requisiti di **tracciabilità, gestione del magazzino e controllo qualità (QC)** tipici di un laboratorio chimico o radiofarmaceutico (GMP compliant).
+Benvenuto nel **Gestionale di Laboratorio (Gestore-Lab)**, un'applicazione software sviluppata in **Python + Flask + SQLite** per centralizzare, ottimizzare e semplificare la gestione quotidiana del magazzino e delle attività correlate.
 
-L'applicazione si distingue per un'interfaccia estremamente raffinata con **Premium Dark Theme** ad alto contrasto, ideale per l'utilizzo quotidiano su schermi di laboratorio e camera calda, offrendo al contempo micro-animazioni fluide e strumenti di produttività all'avanguardia.
+Il sistema offre un controllo completo e intuitivo sulle giacenze in tempo reale, consentendo al personale di monitorare l'intero ciclo di vita dei materiali, dall'ingresso delle materie prime fino al loro scarico. L'applicazione riduce al minimo il rischio di errori manuali e garantisce la **tracciabilità totale (Audit Trail)** di ogni singolo movimento, supportando l'efficienza e gli standard qualitativi (GMP compliant) del laboratorio.
+
+L'interfaccia è nativamente progettata e ottimizzata per la **Modalità Notte (Tema Scuro Premium)**, che garantisce la massima coerenza visiva e il contrasto ideale tra tutti gli elementi grafici su schermi di laboratorio e camera calda.
 
 ---
 
-## 🚀 1. Come Avviare il Server e Collegarsi
+## 🚀 1. Avvio e Accesso al Sistema
 
-L'avvio dell'applicazione su sistemi Windows è completamente automatizzato ed è progettato per funzionare in modalità *zero-configuration* per l'utente finale.
+Il software non richiede complesse procedure di configurazione manuale. L'avvio su sistemi Windows è completamente automatizzato ed è progettato per funzionare in modalità *zero-configuration*.
 
-### Avvio Rapido (Windows)
-1. Fai doppio clic sul file **`Avvia_Programma.bat`** o **`Avvia_Programma.vbs`** situato nella cartella principale del progetto.
-2. Lo script eseguirà autonomamente le seguenti azioni:
-   - Verifica la presenza di Python nel sistema (in caso contrario, scarica e installa in modalità silenziosa la versione **Python 3.11**).
-   - Inizializza l'ambiente virtuale (`.venv`) isolando le dipendenze.
-   - Installa e aggiorna tutti i requisiti indicati in `requirements.txt`.
-   - Avvia il server Flask e apre automaticamente il browser web predefinito.
+### Prima Attivazione e Avvio Rapido
+1. Localizzare la cartella principale del software.
+2. Eseguire un doppio clic sul file **`Avvia_Programma.vbs`** (in alternativa, è possibile usare `Avvia_Programma.bat`).
+3. **Nota per il primo avvio:** Durante la prima esecuzione, il sistema verificherà la presenza dei componenti necessari, scaricando e installando automaticamente gli aggiornamenti mancanti. Questa operazione iniziale potrebbe richiedere alcuni minuti. I successivi avvii saranno quasi istantanei.
+4. All'avvio del programma, si aprirà automaticamente una nuova scheda nel browser web predefinito, mostrando la schermata principale del gestionale.
 
-### Avvio Manuale (Riga di comando / PowerShell)
-Se preferisci gestire manualmente l'ambiente:
-```powershell
-# 1. Entra nella cartella del progetto ed attiva l'ambiente virtuale
-.venv\Scripts\Activate.ps1
+### Accesso al Gestionale
+L'applicazione è progettata per funzionare all'interno della rete locale, permettendo la consultazione anche da altri dispositivi (PC, Tablet o Smartphone) connessi alla stessa rete Wi-Fi:
 
-# 2. Avvia il server web
-python app.py
-```
-
-### Come Collegarsi
-Al momento dell'avvio, il server Flask rileva l'indirizzo all'interno della rete locale (LAN). È possibile connettersi da qualsiasi dispositivo (PC, Tablet, Smartphone) collegato alla stessa rete:
-* **Connessione Locale:** [http://127.0.0.1:5000](http://127.0.0.1:5000) o [http://localhost:5000](http://localhost:5000)
-* **Connessione in Rete LAN:** `http://[IP_LOCALE_DEL_PC]:5000` (es. `http://192.168.1.120:5000`)
+*   **Accesso Locale (sullo stesso PC):** In caso di chiusura accidentale della finestra del browser, è possibile riprendere l'attività aprendo una nuova scheda nel browser e digitando il seguente indirizzo nella barra degli URL:
+    [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
+*   **Accesso Remoto (da altri dispositivi della stessa rete):** Digitare nella barra degli indirizzi del browser:
+    `http://<Indirizzo_IP>:5000/`
+    Per identificare l'esatto indirizzo IP del PC principale (il computer su cui è stato avviato il programma tramite il file `.vbs` o `.bat`):
+    1. Aprire il terminale dei comandi del PC principale (digitando `cmd` nella barra di ricerca di Windows).
+    2. Digitare il comando `ipconfig` e premere Invio.
+    3. Individuare la voce **Indirizzo IPv4** (es. `192.168.1.120`). Sostituire questo valore numerico all'interno del link sopra indicato.
 
 ---
 
 ## 📁 2. Struttura del Progetto
 
-Il progetto segue un'architettura modulare, separando la logica di routing (backend), i dati fisici (database), le utilità di stampa/PDF e l'interfaccia web (static/templates).
+Il progetto segue un'architettura modulare e pulita per separare la persistenza dei dati, la logica di routing, le utilità di stampa/PDF e l'interfaccia web (static/templates):
 
 ```text
 Gestore-Lab/
@@ -92,213 +89,249 @@ Gestore-Lab/
 
 ---
 
-## 🖥️ 3. Documentazione Dettagliata delle Pagine
+## 🖥️ 3. Struttura della Schermata Principale
 
-Di seguito viene analizzata singolarmente ogni schermata dell'applicazione, descrivendone accuratamente **l'aspetto visivo** (cosa si vede) e **tutte le funzioni operative** incluse.
-
----
-
-### 🏠 Dashboard Principale (`index.html`)
-
-> [!NOTE]
-> Rappresenta la home page dell'applicazione e funge da centro di smistamento operativo per tutte le aree gestionali.
-
-*   **Cosa si vede:**
-    *   Una testata elegante con il titolo del laboratorio ed un design scuro e pulito.
-    *   **Spotlight Universal Search:** Una barra di ricerca monolitica in stile Spotlight (Apple macOS) situata in alto al centro. Mostra l'icona di una lente d'ingrandimento e un campo di input che cattura l'attenzione visiva.
-    *   **Griglia di Navigazione Principale:** Una griglia responsive con 4 schede giganti dal forte impatto cromatico e icone fluttuanti:
-        *   **Stato Magazzino (Azzurro Neon):** Monitoraggio globale e alert giacenze.
-        *   **Anagrafica Materie Prime (Indaco):** Configurazione e scheda dei prodotti.
-        *   **Gestione Lotti (Viola Regale):** Registrazione degli arrivi, Controllo Qualità e stampa etichette.
-        *   **Scarichi e Movimenti (Arancione Caldo):** Prelievi e storico dei consumi.
-    *   Una barra di stato superiore (Navbar) con link rapidi di navigazione ed un menu a tendina per le **Impostazioni Amministrative** (icona a ingranaggio) che fluttua al di sopra del layout.
-*   **Funzioni operative:**
-    *   **Spotlight Universal Search (AJAX):** Consente di cercare in tempo reale digitando caratteri. L'algoritmo interroga simultaneamente codici prodotto, nomi materia prima e lotti interni. Cliccando su un risultato del dropdown, l'utente viene reindirizzato all'istante sul record cercato o nella pagina corrispondente.
-    *   **Navigazione Rapida:** Clic sulle macro-sezioni colorate per accedere alle rispettive aree del software.
+L'interfaccia utente è suddivisa in quattro macroaree principali per facilitare una navigazione immediata e intuitiva:
+1. **Pulsanti Ausiliari (in alto a destra):** Consentono l'accesso rapido alle statistiche, alle impostazioni avanzate, alle funzioni di backup, allo storico delle operazioni (Audit Trail) e all'interruttore del tema cromatico.
+2. **Barra Spotlight (centrale in alto):** Lo strumento di ricerca globale e navigazione rapida basato su codici o nomi.
+3. **Schede Operative (Card centrali):** Quattro pulsanti riquadrati che indirizzano alle diverse funzionalità principali del gestionale (Stato Magazzino, Materie Prime, Lotti, Scarichi).
+4. **Pannello degli Avvisi (sul lato destro):** Un'area dedicata alla segnalazione visiva delle scorte in esaurimento o dei lotti in scadenza.
 
 ---
 
-### 📊 Stato Magazzino & Giacenze (`magazzino.html`)
+## 🔍 4. Barra Spotlight: Navigazione Rapida e Ricerca Globale
 
-> [!TIP]
-> Questa pagina offre una panoramica istantanea delle scorte fisiche aggregate del laboratorio, aggregando tutti i lotti attivi.
+La barra Spotlight, posizionata centralmente nella parte superiore della schermata principale, è lo strumento principale per la ricerca globale all'interno del gestionale. Consente di rintracciare istantaneamente codici interni, lotti o operazioni di scarico, offrendo al contempo scorciatoie per le principali attività operative.
 
-*   **Cosa si vede:**
-    *   Un riepilogo in tempo reale dello stato delle giacenze aggregate.
-    *   Le materie prime sono raggruppate in **sezioni visive separate in base alla Categoria di Magazzino** (es. *Kit*, *Filtri*, *Reagenti*, *Consumabili*).
-    *   Una tabella dettagliata con colonne: Codice, Nome Materia Prima, Categoria, Giacenza Totale aggregata (somma dei lotti in uso), Unità di Misura (pz o g), Stato Scorte, e la Scadenza Imminente.
-    *   **Alert Scorte Minime:** Se la giacenza di un prodotto scende sotto la soglia impostata, la cella dello stato si illumina in rosso acceso mostrando la dicitura **"Scorta Minima Superata!"**.
-    *   **Alert Scadenza Imminente:** Mostra la data di scadenza più vicina tra i lotti attivi per quel reagente, evidenziandola se è imminente.
-*   **Funzioni operative:**
-    *   **Aggregazione in Tempo Reale:** Calcola automaticamente le somme delle giacenze dei soli lotti attivi e non esauriti.
-    *   **Filtro Istantaneo:** Campo di testo per filtrare rapidamente i materiali visualizzati per nome o codice.
-    *   **Monitoraggio Qualità:** Individuazione tempestiva del lotto prioritario da consumare.
+### Scorciatoie da Tastiera
+Per rendere il flusso di lavoro più efficiente e limitare l'uso del mouse, l'interfaccia supporta i seguenti comandi rapidi da tastiera:
+*   **Attivazione Automatica:** All'apertura della schermata principale, il cursore si posiziona automaticamente all'interno della barra, pronto per la digitazione.
+*   `CTRL + K`: Sposta istantaneamente il cursore all'interno della barra di ricerca da qualsiasi punto della pagina in cui ci si trovi.
+*   `Frecce Direzionali (Su/Giù) + Invio`: Permettono di scorrere l'elenco dei risultati suggeriti sotto la barra e di selezionare la voce desiderata.
+*   `ESC`: Cancella interamente il testo digitato, azzera i filtri e chiude il pannello dei risultati di ricerca.
 
----
+### Categorie di Ricerca e Azioni Rapide
+La barra analizza in tempo reale i caratteri digitati e suddivide i risultati in tre categorie principali, proponendo azioni rapide per accedere direttamente alle funzioni correlate:
 
-### 📋 Anagrafica Materie Prime (`list.html`)
+#### A. Materie Prime
+Quando si digita il nome o il codice di una materia prima, il sistema offre tre opzioni di navigazione:
+*   **Registro:** Reindirizza alla pagina generale del registro delle materie prime, applicando automaticamente un filtro sul prodotto selezionato.
+*   **Lotti:** Mostra l'elenco completo di tutti i lotti (attivi e storici) associati specificamente a quella materia prima.
+*   **Scarica:** Indirizza direttamente alla pagina di Scarico Manuale, precompilando il modulo con l'anagrafica del prodotto selezionato per accelerare la procedura.
 
-> [!NOTE]
-> È il catalogo centrale del software, dove vengono censiti i prodotti gestiti nel magazzino.
-
-*   **Cosa si vede:**
-    *   L'elenco in forma tabellare di tutti i reagenti e dispositivi registrati nell'anagrafica del laboratorio.
-    *   Colonne: Codice, Nome Materia Prima, Nome per Etichette, Unità di Misura, Destinazione d'Uso, Fornitore Standard, Controcampione Richiesto (SI/NO), Distribuzione Richiesta (SI/NO), Scorta Minima e Ordine Magazzino.
-    *   **Pulsante Modifica:** Situato all'estrema destra di ogni riga.
-    *   In alto, il pulsante **"Nuova Materia Prima"** per procedere a un nuovo inserimento.
-*   **Funzioni operative:**
-    *   **Modifica In-Line tramite Modal:** Facendo clic su "Modifica", si apre un modal precompilato che consente di cambiare le proprietà anagrafiche del materiale (es. aggiornare il nome per le etichette, modificare la scorta minima o cambiare l'uso).
-    *   Il salvataggio aggiorna istantaneamente il database SQLite, rinfresca la tabella tramite Flask e genera un log dell'operazione nell'Audit Trail GMP.
+#### B. Lotti di Magazzino
+Cercando un codice lotto specifico, l'operatore può accedere rapidamente a:
+*   **Vedi lotto:** Apre la scheda informativa dettagliata del singolo lotto nel registro, mostrandone lo stato di conformità, i quantitativi residui e le scadenze.
+*   **Etichetta:** Porta alla sezione di generazione e stampa delle etichette, con i dati del lotto già inseriti.
+*   **Scarica:** Avvia la procedura di Scarico Manuale impostando automaticamente il lotto in questione come oggetto del prelievo.
 
 ---
 
-### ➕ Nuova Materia Prima (`add_product.html`)
+## 📦 5. Documentazione Dettagliata delle Schede Operative (Card)
 
-*   **Cosa si vede:**
-    *   Un pannello centrale di inserimento con campi di input moderni ed eleganti dal design scuro.
-    *   Campi richiesti: Codice MP (univoco), Nome Prodotto, Nome File, Unità di Misura (g o pz), Nome per Etichette (nome compatto stampato), Uso/Destinazione, Codice Fornitore, Controcampione, Distribuzione, Scorta Minima e Categoria Magazzino.
-*   **Funzioni operative:**
-    *   **Registrazione Prodotto:** Aggiunge una nuova materia prima nell'anagrafica.
-    *   **Validazione lato client/server:** Controlla l'univocità del codice primario impedendo duplicazioni e verifica che i campi obbligatori siano compilati, mostrando avvisi flash dinamici.
+### 📊 A. Stato Magazzino
+La scheda Stato Magazzino offre una panoramica centralizzata e in tempo reale di tutte le materie prime e i materiali censiti nel laboratorio. La schermata è strutturata su due livelli di lettura: una vista generale aggregata e una vista di dettaglio dedicata ai singoli lotti.
 
----
+#### 1. Schermata Principale (Vista Aggregata)
+All'apertura della sezione viene mostrato l'elenco completo dei materiali. Per ciascuna voce, il sistema calcola e mostra automaticamente i seguenti indicatori:
+*   **Giacenza Totale:** Rappresenta la disponibilità complessiva del materiale in magazzino, calcolata sommando le quantità residue di tutti i relativi lotti attivi.
+*   **Data di Scadenza:** Al fine di garantire la sicurezza e l'integrità delle analisi, il sistema individua e mostra la scadenza più ravvicinata tra tutti i lotti disponibili per quel materiale.
+*   **Scorta Minima e Sistema di Allerta:** Indica la soglia numerica minima di sicurezza stabilita per quel prodotto. Qualora la giacenza totale dovesse scendere al di sotto di questo valore, il sistema genererà automaticamente un messaggio visivo di avviso sia in questa schermata sia nel pannello degli avvisi della home, segnalando la necessità di un riordino.
 
-### 📦 Gestione Lotti (`lotti_list.html`)
-
-> [!IMPORTANT]
-> Schermata operativa cruciale che gestisce la qualità dei singoli lotti di reagenti in magazzino.
-
-*   **Cosa si vede:**
-    *   **Filtri di Stato in alto:** Pulsanti per alternare la visualizzazione tra **Lotti Attivi (in uso)**, **Lotti Esauriti (chiusi)** o **Tutti i Lotti**.
-    *   Tabella principale con colonne: Lotto Interno, Codice MP, Nome MP, Fornitore, Lotto Fornitore, Data Arrivo, Data Scadenza, Giacenza, Stato Approvazione (Appr.) e Stato Etichetta (Etich.).
-    *   **Indicatori di Stampa Etichette:** Due pallini (dot) colorati con etichette 'B' (Etichetta Bianca) e 'V' (Etichetta Verde) indicano visivamente se le etichette fisiche sono già state stampate.
-    *   Pulsante **"Modifica"** (icona a matita) e collegamento per la generazione di etichette per ogni riga.
-*   **Funzioni operative:**
-    *   **Filtro Dinamico:** Consente di escludere i lotti esauriti per evitare confusione visiva.
-    *   **Gestione Qualità e QC (Modal di Modifica):** Consente di aggiornare tutti i parametri di conformità del lotto:
-        - *Data consegna al QC*
-        - *Data approvazione* (l'inserimento imposta automaticamente lo stato di approvazione `appr` su `'OK'`)
-        - *Giacenza residua*
-        - *Stato Appr.* (`OK` o `-`)
-        - *Stato Etich.* (`OK` o `-`)
-        - *Controcampione (CC)*, *Reparto*, *Stato Chiuso* (se impostato su "SÌ", il lotto viene archiviato).
-    *   **Inalterabilità Audit Trail:** Ogni modifica a un lotto (ad es. cambio di giacenza o approvazione) confronta i vecchi valori con i nuovi e ne esegue il log rigido in `Audit_Trail`.
+#### 2. Dettaglio Prodotto (Vista Lotti)
+Selezionando una riga corrispondente a un materiale, l'interfaccia si espande mostrando la scomposizione analitica di tutti i lotti fisicamente presenti in magazzino. In questa schermata sono presenti elementi interattivi e indicatori specifici:
+*   **Stato "In Uso":** Questo indicatore contrassegna il lotto che il software suggerirà o preleverà prioritariamente durante le operazioni. Il sistema applica automaticamente la **logica FEFO (First Expired, First Out)**, impostando come *"In Uso"* il lotto con la data di scadenza più vicina.
+*   **Ultimo Utilizzo (Campo Interattivo):** Cliccando su questa voce, si accede a una finestra informativa che mostra i dettagli relativi all'ultima movimentazione registrata per quel lotto (es. data, ora e operatore).
+*   **Giacenza del Lotto (Campo Interattivo):** Cliccando sul valore numerico della giacenza del singolo lotto, l'utente viene reindirizzato direttamente al Registro Scarichi. In questa pagina è possibile tracciare lo storico dei prelievi e verificare con precisione in quali sessioni di lavoro o analisi è stato impiegato quel lotto specifico.
 
 ---
 
-### 📦 Nuovo Lotto (`add_lotto.html`)
+### 📋 B. Materie Prime
+Questa sezione descrive la gestione anagrafica dei materiali del laboratorio. Attraverso questo modulo è possibile censire nuovi articoli o aggiornare e rimuovere quelli già esistenti a sistema.
 
-*   **Cosa si vede:**
-    *   Un form guidato ed elegante per inserire un lotto in arrivo.
-    *   **Ricerca Assistita Materia Prima:** Un campo di input dotato di dropdown a discesa che permette di selezionare rapidamente la materia prima anagrafica digitandone il nome o il codice.
-    *   Campi: Lotto Interno, Data Arrivo, Lotto Fornitore, Fornitore (con autocompletamento intelligente dei fornitori qualificati in anagrafica), Data Scadenza, Quantità Arrivata e Pezzi per confezione.
-*   **Funzioni operative:**
-    *   **Associazione Anagrafica:** Collega il lotto in arrivo alla corretta materia prima nel database.
-    *   **Validazione Date:** Blocca la sottomissione del form se la data di scadenza è precedente alla data di arrivo.
-    *   **Stato Iniziale QC:** Crea il lotto con stato di approvazione ed etichetta inizializzati come non approvati (`'-'`), in attesa del controllo QC.
+#### 1. Nuova Materia Prima (Inserimento Anagrafica)
+La pagina consente l'inserimento nel database di un articolo o di un reagente non ancora registrato.
+*   **Procedura di inserimento:** Compilare tutti i campi obbligatori relativi alle specifiche del materiale (es. descrizione, unità di misura, soglie) e verificare l'esattezza del Codice Identificativo. Al termine, premere il pulsante di conferma per salvare l'anagrafica nel database.
+*   **Regola di Validazione (Codice Univoco):** Per garantire l'integrità dei dati e la tracciabilità, il sistema non permette la duplicazione dei codici. Qualora si tenti di salvare un codice già assegnato a un altro articolo o si riscontrino anomalie nei dati inseriti, l'applicazione bloccherà l'operazione mostrando un messaggio di errore mirato.
 
----
-
-### 🏷️ Nuova Etichetta (`nuova_etichetta.html`)
-
-> [!IMPORTANT]
-> Questa pagina gestisce la generazione e la stampa fisica delle etichette adesive (layout rigido 95mm x 60mm) da applicare sui reagenti.
-
-*   **Cosa si vede:**
-    *   Una tabella superiore per selezionare il lotto desiderato, dotata di indicatori di stampa (Bianca e Verde).
-    *   **Pannello di Anteprima Live Doppia:** Visualizza in tempo reale:
-        1.  **Etichetta Bianca (Standard):** Contiene Codice Prodotto, Nome MP, Lotto Interno, Data Arrivo, Lotto Fornitore, Quantità, Operatore, e un Barcode dinamico.
-        2.  **Etichetta Verde (Approvato):** Sfondo verde brillante con scritta "APPROVATO", Codice, Nome MP, Lotto Interno, Fornitore, Lotto Fornitore, Data Scadenza, Data Approvazione, e l'Operatore QC autorizzato.
-*   **Funzioni operative:**
-    *   **Vincoli Rigidi GMP per l'Etichetta Verde:** Il pulsante di stampa dell'etichetta verde è abilitato unicamente se:
-        - L'etichetta bianca è stata stampata.
-        - La data di consegna al QC è configurata.
-        - Lo stato di approvazione (`appr`) del lotto è impostato su `'OK'`.
-    *   **Registrazione Storico Etichette:** Cliccando su "Stampa", l'evento viene salvato nel database in `Storico_Etichette`. Se viene stampata un'etichetta verde, lo stato `etich` del lotto viene automaticamente aggiornato su `'OK'`.
-    *   **Stampa Ottimizzata:** Utilizza regole CSS `@media print` per adattare la griglia di stampa su fogli adesivi A4 (griglie standard 2x4 o 3x8) eliminando le intestazioni del browser.
+#### 2. Registro Materie Prime (Consultazione e Modifica)
+Il Registro offre l'elenco completo e centralizzato di tutte le anagrafiche dei materiali salvate nel sistema. Oltre alla sola consultazione, questa pagina funge da pannello di controllo per le modifiche e le cancellazioni.
+*   **Modifica di un elemento esistente:** Selezionando con un clic la riga corrispondente alla materia prima di interesse, si sbloccheranno i campi interattivi per la modifica dei dati. Una volta variati i valori, l'operatore può scegliere una delle tre azioni disponibili tramite i rispettivi pulsanti:
+    *   **Salva:** Applica e rende definitive le modifiche apportate sul database, aggiornando la scheda del materiale in tempo reale.
+    *   **Reset:** Annulla istantaneamente tutte le modifiche testuali appena inserite, ripristinando i valori precedenti senza chiudere la finestra di modifica dell'articolo.
+    *   **Elimina:** Rimuove permanentemente l'anagrafica della materia prima dal database di sistema.
+    *   > [!WARNING]
+        > L'azione di eliminazione è irreversibile. Si consiglia di verificare che non vi siano lotti ancora attivi legati all'articolo prima di procedere con la cancellazione.
 
 ---
 
-### 🗂️ Storico Etichette (`storico_etichetta.html`)
+### 📦 C. Lotti
+Questo modulo permette il tracciamento operativo dei singoli lotti associati alle materie prime, consentendo di registrarne la provenienza, le scadenze e i quantitativi in ingresso.
 
-*   **Cosa si vede:**
-    *   Tabella riepilogativa cronologica delle etichette stampate in laboratorio.
-    *   Colonne: Data/Ora Stampa, Lotto Interno, Codice e Nome MP, Data Arrivo, Quantità, Tipo Stampa (Bianco/Verde) e Operatore.
-*   **Funzioni operative:**
-    *   **Filtri e Ricerca:** Ricerca rapida per lotto o tipo etichetta.
-    *   **Ristampa Rapida:** Consente agli operatori di ristampare un'etichetta deteriorata con un solo clic bypassando i passaggi del QC originale.
+#### 1. Nuovo Lotto (Registrazione e Carico)
+La pagina consente il carico in magazzino di una nuova fornitura di materiale.
+*   **Procedura di Inserimento:**
+    *   **Date di Riferimento:** La *Data di Arrivo* viene impostata automaticamente sul giorno corrente, ma può essere modificata manualmente selezionando il giorno desiderato tramite il calendario integrato. La *Data di Scadenza* del materiale va inserita manualmente.
+        > [!IMPORTANT]
+        > **Regola di Validazione:** Per garantire la conformità e la sicurezza del magazzino, la data di scadenza deve essere obbligatoriamente successiva alla data di arrivo. In caso contrario, il sistema bloccherà il salvataggio mostrando un messaggio di errore.
+    *   **Associazione Materia Prima:** Selezionare il materiale desiderato digitando all'interno del campo di testo o selezionandolo dal menu a tendina. Una volta effettuata la scelta, il sistema compilerà e assocerà automaticamente il relativo Codice Univoco della materia prima.
+    *   **Anagrafica Fornitore:** Selezionare il nome del fornitore tramite l'apposito menu a tendina. Nel caso in cui il fornitore non sia ancora censito a sistema, è possibile registrarlo immediatamente premendo il pulsante dedicato per la creazione di un **Nuovo Fornitore**, senza dover abbandonare la pagina di inserimento del lotto.
+    *   **Identificativi e Salvataggio:** Completare i restanti campi richiesti (quantità, lotto del produttore, ecc.) e definire il campo **Lotto Interno**.
+        > [!IMPORTANT]
+        > **Regola di Validazione (Codice Univoco):** Il codice identificativo del lotto interno funge da chiave primaria per la tracciabilità e deve essere rigorosamente univoco. Se si inserisce un codice già registrato, l'applicazione segnalerà l'anomalia.
+    *   Premere il pulsante di conferma per salvare i dati e rendere disponibile il lotto per le attività del laboratorio.
 
----
-
-### 📉 Gestione Scarichi & Prelievi (`scarico_manuale.html`)
-
-> [!IMPORTANT]
-> È il cuore funzionale del magazzino, diviso in due aree operative fondamentali per gestire le uscite dei reagenti.
-
-*   **Cosa si vede:**
-    *   **Area di Sinistra - Scarico Manuale:**
-        *   Un form pulito per registrare singoli prelievi manuali (es. per controcampionamento, analisi o scarto).
-        *   Campi: Data scarico, Materiale (dropdown dinamico), Lotto Interno (mostra solo i lotti attivi con giacenza reale del materiale selezionato), Quantità da scaricare, Causale e Operatore.
-    *   **Area di Destra - Scarico Automatizzato (Picking List):**
-        *   Un menu per selezionare il profilo di una ricetta di produzione standard (es. *Picking FDG (Synthera)*, *Trasis*, *FBB*, *FCH*, *PYL*, *DOTA*, ecc.).
-        *   Il checkbox **"Run in bianco"** per abilitare l'uso di reagenti non ancora approvati nei test di prova.
-        *   Una **tabella dinamica** che si popola all'istante quando si sceglie una ricetta, visualizzando tutti i componenti previsti, proponendo il **lotto interno ideale applicando la logica FIFO** e controllando la sicurezza.
-*   **Funzioni operative:**
-    *   **Scarico Manuale:** Sottrae la quantità indicata dal database. Blocca l'operazione se la quantità richiesta è superiore alla giacenza reale.
-    *   **Algoritmo FIFO:** Seleziona automaticamente il lotto approvato con data di scadenza più imminente per ottimizzare la rotazione del magazzino.
-    *   **Generazione Picking List in PDF:** Crea ed esporta istantaneamente una Picking List ufficiale in formato PDF (salvata in `picking list/`), aprendola nel browser.
-    *   **Bypass "Run in Bianco":** Se attivo, preimposta l'Acqua arricchita 18O (codice `'424'`) con l'eventuale lotto non ancora approvato dal QC, consentendo l'avvio della sintesi di prova.
-    *   **Blocco Sicurezza (Etichetta Verde):** Impedisce tassativamente lo scarico se uno o più lotti proposti per la produzione non sono stati approvati dal QC (stato `etich` non su `OK` e nessun record "VERDE" stampato), a meno che non si tratti del bypass per il Run in bianco.
-    *   **Blocco Sicurezza (Lotto Scaduto):** **Controllo rigido di scadenza**. Lo scarico automatizzato viene interrotto con errore bloccante se anche uno solo dei lotti selezionati risulta scaduto alla data dello scarico (`data_scadenza < data_scarico`).
-
----
-
-### 📜 Storico Scarichi (`storico_scarichi.html`)
-
-*   **Cosa si vede:**
-    *   Il registro cronologico completo di tutti i movimenti in uscita effettuati in magazzino.
-    *   Tabella con colonne: Data scarico, Codice MP, Nome MP, Lotto Interno, Quantità, Causale, Operatore e il **Lotto Prodotto finale** associato.
-*   **Funzioni operative:**
-    *   **Filtri e Ricerca:** Consente di filtrare per testo, operatore o data.
-    *   **Tracciabilità del Prodotto Finito:** Correlazione diretta ed inalterabile tra le materie prime consumate ed il lotto di radiofarmaco sintetizzato.
+#### 2. Registro Lotti (Consultazione e Controllo Qualità)
+Il Registro Lotti elenca tutti i lotti caricati a sistema, mostrando a colpo d'occhio le loro caratteristiche principali (codici, giacenze, scadenze). Selezionando una riga con un clic, l'interfaccia si espande per mostrare le informazioni secondarie e sbloccare la modifica dei dati anagrafici. La tabella include una serie di pulsanti interattivi e colonne di stato fondamentali per l'avanzamento operativo del materiale:
+*   **Et. Bianca (Etichetta Bianca):** Reindirizza istantaneamente alla pagina di configurazione e stampa delle etichette identificative preliminari per il lotto selezionato.
+*   **QC (Controllo Qualità):** Questa colonna monitora lo stato del controllo analitico del lotto attraverso un sistema di segnalazione cromatica a tre stadi:
+    *   ⬛ **Grigio (Stato Iniziale):** Indica che il controllo qualità non è ancora stato avviato sul lotto.
+    *   🟨 **Giallo (In Preparazione / Selezione Multipla):** Cliccando sul tasto grigio, questo diventa giallo. Questo stato intermedio consente di selezionare più lotti contemporaneamente (anche di lotti diversi).
+        > [!TIP]
+        > **Annullamento Errore:** Se un lotto viene contrassegnato in giallo per errore, è possibile fare clic con il tasto destro del mouse sulla voce gialla per annullare l'azione e riportare il pulsante allo stato iniziale (grigio).
+    *   🟩 **Verde / Consegnato ("QC - Consegnato"):** Cliccando nuovamente sul tasto giallo, il lotto passa allo stato definitivo di conformità/consegna del QC, registrando in automatico la data odierna come data di completamento dell'analisi.
+        > [!NOTE]
+        > Una volta confermata la selezione dei lotti in giallo, il sistema genera automaticamente un unico file PDF riassuntivo (**Richiesta di Analisi**) all'interno della cartella di sistema `richiesta_analisi/`.
+*   **Appr. (Approvazione):** Cliccando su questo comando si apre una finestra di dialogo che permette di registrare la data ufficiale di approvazione del lotto (impostata di default sulla data corrente).
+*   **Et. Verde (Etichetta Verde):** Una volta che il lotto ha superato i controlli, questo pulsante indirizza alla pagina di generazione delle etichette verdi di conformità, pronte per essere applicate sui contenitori per autorizzarne l'uso.
+*   **CC (Contro campione):** Attiva una scorciatoia che reindirizza l'utente alla pagina di Scarico Manuale, configurando e precompilando automaticamente la causale e i dati del lotto per il prelievo del "contro campione" di laboratorio.
+*   **Salva (Lista di Distribuzione):** Questo pulsante esporta e salva direttamente un documento PDF contenente la **lista di distribuzione e tracciabilità** del lotto selezionato all'interno della cartella dedicata `lista_distribuzione/`.
 
 ---
 
-### 🛡️ Registro Audit Trail (`audit_trail.html`)
+### 📉 D. Gestione degli Scarichi di Magazzino
+Questo modulo gestisce il prelievo e il consumo dei materiali dal magazzino del laboratorio. Il sistema permette di registrare le movimentazioni in due modalità distinte: Manuale (per prelievi singoli o causali specifiche) e Automatico (legato a ricette o protocolli di sintesi predefiniti).
 
-> [!CAUTION]
-> Questa pagina fornisce la tracciabilità delle attività richieste dalle severe linee guida di qualità GMP (Annex 11).
+#### 1. Registrazione Scarico (Pannello Iniziale)
+All'accesso alla sezione dedicata, l'operatore si trova davanti a un pannello di selezione iniziale: è presente una barra di ricerca / menu a tendina. Consente di digitare o selezionare la tipologia di scarico da effettuare. Scegliendo la voce generica si accede alla compilazione manuale, mentre selezionando un protocollo specifico si avvia la procedura di scarico automatico per sintesi.
 
-*   **Cosa si vede:**
-    *   Una griglia tabellare rigida non modificabile contenente l'elenco cronologico di tutte le modifiche apportate nel sistema.
-    *   Colonne: ID, Data/Ora, Operatore, Azione, Tabella Interessata, Vecchio Valore e Nuovo Valore.
-    *   I valori sono formattati in JSON strutturato e facilmente leggibile per visualizzare esattamente i singoli campi modificati (es. giacenza da 10 a 5, o stato approvazione da '-' a 'OK').
-*   **Funzioni operative:**
-    *   **Filtri di consultazione:** Ricerca per operatore, azione o tabella.
-    *   **Sola Lettura:** Non esiste alcuna interfaccia utente o funzione per eliminare, alterare o azzerare i record dell'Audit Trail dal frontend, garantendo l'integrità assoluta del log di sistema.
+#### 2. Scarico Manuale
+La modalità manuale viene utilizzata per registrare prelievi occasionali, correzioni di inventario o campionamenti.
+*   **Procedura operativa:**
+    1.  **Dati Sessione:** Inserire la data dell'operazione e il nome dell'operatore che effettua il prelievo.
+    2.  **Selezione Materiale e Lotto:** Selezionare la materia prima desiderata. Una volta scelta, il sistema mostrerà esclusivamente i lotti fisicamente disponibili in magazzino.
+    3.  **Preselezione Automatica:** Il software preseleziona automaticamente il lotto contrassegnato come *"In Uso"*, ovvero quello con la scadenza più vicina (FEFO), per favorire la corretta rotazione dei materiali. L'operatore può comunque variare manualmente la scelta.
+    4.  **Quantità e Causale:** Inserire la quantità volumetrica o ponderale da scaricare e specificare la causale del prelievo dall'apposito elenco.
+    5.  **Registrazione:** Premere il pulsante per confermare e scalare le giacenze dal database.
+*   **Integrazione Contro Campione (Flag CC):** Se la causale selezionata corrisponde a *"Contro campione"*, il sistema applicherà in automatico il contrassegno CC nel Registro Lotti in corrispondenza del lotto utilizzato, garantendone la tracciabilità per scopi ispettivi.
+
+#### 3. Scarico Automatico
+La selezione di un profilo di scarico automatico permette di registrare i consumi di un intero blocco di materiali associati a un determinato processo di sintesi del laboratorio (es. ricette per *Picking FDG (Synthera)*, *Trasis*, *FBB*, *FCH*, *PYL*, *DOTA*, ecc.).
+*   **Caratteristiche e Funzionalità della Schermata:**
+    *   **Selezione Automatica:** Il sistema compila automaticamente l'elenco di tutte le materie prime richieste dal protocollo selezionato, impostando i rispettivi quantitativi standard di ricetta. Se necessario, l'operatore può modificare manualmente le quantità prima della registrazione.
+    *   **Assegnazione dei Lotti:** Il software propone per ciascuna voce il lotto attivo corrente. L'operatore mantiene la facoltà di modificare l'assegnazione tramite menu a tendina.
+    *   **Indicatori Visivi di Conformità (Stato Approvazione):** Accanto a ogni lotto compare un indicatore cromatico circolare (pallino) che ne attesta lo stato di Controllo Qualità:
+        *   🟢 **Verde:** Il lotto è già stato verificato e formalmente approvato dal Controllo Qualità.
+        *   🔴 **Rosso:** Il lotto non ha ancora completato l'iter di approvazione del Controllo Qualità.
+    *   **Monitoraggio Giacenze:** Per ogni lotto selezionato vengono mostrate in tempo reale la giacenza residua e la data di scadenza.
+*   **Opzione "Run in Bianco":**
+    *   Sotto la selezione della modalità è presente la funzione speciale **Run in Bianco**.
+    *   Attivando questa opzione, il sistema permette di selezionare ed impiegare il lotto di **Acqua Arricchita** (codice `'424'`) anche nel caso in cui non sia ancora stato formalmente approvato dal Controllo Qualità.
+    *   In questo scenario specifico, il software non bloccherà l'operazione con un messaggio di errore e provvederà a preselezionare automaticamente il lotto non approvato per velocizzare il flusso di lavoro.
+*   **Validazione e Conferma:**
+    *   Una volta verificati tutti i campi, premere il pulsante "Registra scarico". Il sistema effettuerà un controllo di congruenza sui dati e sulle giacenze: se l'operazione va a buon fine, il magazzino viene scaricato; in caso contrario, l'applicazione segnalerà l'anomalia riscontrata per permettere la correzione immediata.
+    *   > [!IMPORTANT]
+        > **Controllo Rigido Scadenza:** Lo scarico automatizzato viene interrotto con errore bloccante se anche uno solo dei lotti selezionati risulta scaduto alla data dello scarico (`data_scadenza < data_scarico`).
+
+#### 4. Storico Scarichi (Registro e Tracciabilità)
+La pagina Storico Scarichi costituisce l'archivio digitale centralizzato di tutte le movimentazioni in uscita registrate nel laboratorio, per verificare a ritroso qualsiasi consumo.
+*   **Sistema di Filtraggio e Ricerca Rapida:** Nella parte superiore della schermata è presente un pannello dedicato ai filtri di ricerca (Data dell'operazione, Tipologia di scarico, Operatore). La tabella sottostante si aggiorna dinamicamente mostrando una panoramica preliminare delle voci trovate.
+*   **Funzionalità di Esportazione e Stampa:** Cliccando sullo scarico è possibile espandere la visualizzazione e guardare tutti i dettagli relativi. Nella vista di dettaglio dello scarico sono presenti due pulsanti di azione rapida per la gestione documentale:
+    *   **Salva PDF:** Genera ed esporta automaticamente il documento di scarico in formato PDF, archiviandolo direttamente all'interno della cartella di sistema `picking list/`.
+    *   **Stampa picking list:** Richiama immediatamente l'interfaccia di stampa nativa del browser web. Questa funzione permette di stampare direttamente su carta o di salvare la "lista di prelievo" (picking list) sfruttando le stampanti collegate alla postazione.
 
 ---
 
-### 📈 Statistiche & Analisi (`statistiche.html`)
+### 🏷️ E. Gestione delle Etichette di Laboratorio
+Il modulo Etichette sovrintende alla generazione, al tracciamento e alla stampa dei contrassegni identificativi fisici da applicare sui materiali. Il sistema gestisce due tipologie distinte di etichette: l'Etichetta Bianca (identificazione preliminare all'arrivo) e l'Etichetta Verde (approvazione e conformità all'uso).
 
-*   **Cosa si vede:**
-    *   Una dashboard analitica con metriche chiave e grafici interattivi.
-    *   Metriche: Numero totale di materie prime, lotti attivi, scarichi eseguiti nell'ultimo mese e alert di scorte minime attivi.
-    *   Grafici: Consumo mensile dei prodotti e andamento temporale degli scarichi.
-*   **Funzioni operative:**
-    *   Analisi predittiva sui reagenti in esaurimento in base alle medie storiche.
-    *   Generazione visiva e consultazione di reportistica dettagliata dei consumi.
+#### 1. Nuova Etichetta
+Questa pagina consente di emettere i talloncini identificativi per un lotto specifico, verificandone preventivamente lo stato di avanzamento.
+*   **Selezione del Lotto e Indicatori di Stato (B e V):** All'apertura del modulo, l'operatore può individuare il lotto di interesse digitando i caratteri di riferimento all'interno della barra di ricerca dedicata. La selezione attiva un menu a tendina interattivo in cui, accanto alle informazioni anagrafiche essenziali di ciascun lotto, compaiono sulla destra due indicatori rapidi di stato, denominati **B (Etichetta Bianca)** e **V (Etichetta Verde)**:
+    *   ⚪ **Indicatori Disattivi (Spenti):** Quando i simboli B e V appaiono privi di colore (grigi), significa che per quel determinato lotto non è ancora stata registrata o salvata alcuna etichetta nel database.
+    *   🟢⚪ **Indicatori Attivi (Colorati):** Se i simboli B (in bianco) e V (in verde) sono colorati, il sistema segnala che la rispettiva documentazione grafica è già stata precedentemente generata e risulta presente nell'archivio digitale.
+*   **Anteprima e Vincoli di Generazione:** Una volta confermata la selezione del lotto, l'interfaccia mostra un pannello con l'anteprima dei contrassegni emettibili:
+    *   **Etichetta Bianca:** Risulta sempre disponibile e abilitata alla generazione fin dal primo carico del materiale a magazzino.
+    *   **Etichetta Verde:** La sua abilitazione è subordinata al soddisfacimento di rigidi requisiti procedurali e analitici di laboratorio (QC completato, conformità registrata, approvazione valida).
+    *   **Aggiornamento Dinamico:** La sezione dei vincoli si aggiorna automaticamente in tempo reale sulla schermata, indicando chiaramente all'operatore quali passaggi mancano per sbloccare l'autorizzazione e ottenere il contrassegno verde.
+*   **Flusso di Salvataggio e Stampa:** Per entrambe le tipologie di etichette, la finalizzazione del processo avviene tramite il comando **"Salva & Stampa"**:
+    *   **Allineamento dei Dati:** Al clic sul pulsante, l'applicazione registra l'azione a sistema, modificando in automatico i relativi indicatori di stato e aggiornando i dati visualizzabili all'interno del Registro Lotti.
+    *   **Output di Stampa:** Il software richiama direttamente l'interfaccia del browser configurata per il layout standard di laboratorio (impaginazione in griglia 3 x 8 su foglio A4), predisponendo i moduli per l'applicazione fisica sui contenitori.
+*   **Scorciatoia di Consultazione:** Qualora l'etichetta di un determinato lotto risulti già emessa (indicatori attivi), l'operatore può premere sul pulsante **"Etichetta già disponibile"**: questo comando funge da scorciatoia, reindirizzando l'utente direttamente alla pagina del Registro Etichette con i filtri di ricerca già preimpostati per quel lotto specifico.
+
+#### 2. Registro Etichette (Archivio e Ristampa)
+Il Registro Etichette funge da memoria storica e archivio digitale centralizzato di tutti i contrassegni identificativi (sia bianchi che verdi) che sono stati generati e salvati a sistema. Questa schermata consente una rapida consultazione dello stato delle etichette emesse e offre gli strumenti per la loro gestione documentale e ri-emissione fisica.
+*   **Pannello di Filtraggio e Ricerca Avanzata:** Nella porzione superiore della pagina è posizionato un modulo di filtraggio dinamico. L'operatore può combinare diversi parametri per circoscrivere l'elenco e rintracciare rapidamente i contrassegni cercati: Codice Lotto, Materia Prima, Tipologia di Etichetta (Bianca/Verde), Data di Creazione.
+*   **Tabella Riassuntiva e Funzione di Ristampa:** Sotto l'area dei filtri, il sistema organizza i risultati in una tabella strutturata che espone a colpo d'occhio le informazioni fondamentali di ciascuna emissione (lotto, operatore, data di generazione e layout). In corrispondenza di ciascuna riga è presente un comando operativo dedicato:
+    *   **Pulsante "Ristampa":** Cliccando su questo tasto, l'applicazione richiama istantaneamente l'interfaccia di stampa del browser. Questa funzione permette di duplicare fisicamente i contrassegni sul foglio A4 (in griglia standard 3 x 8) in caso di usura, smarrimento del talloncino originale o necessità di etichettatura supplementare dei contenitori in laboratorio, senza dover ripetere la procedura di configurazione da capo.
 
 ---
 
-### ⚙️ Impostazioni & Utilità (`settings.html`)
+## 🔔 6. Pannello degli Avvisi (Home Page - Monitoraggio Proattivo)
 
-*   **Cosa si vede:**
-    *   Un pannello amministrativo strutturato in sezioni chiare:
-        *   **Backup Database:** Opzioni per scaricare o salvare sul server backup di sicurezza in formato `.db`, o esportare le tabelle in `CSV` o `JSON`.
-        *   **Ripristino Database:** Sezione con input file per caricare un backup `.db` esterno.
-        *   **Svuotamento Temporanei:** Strumento per ripulire le cartelle PDF dai vecchi documenti generati per liberare spazio su disco.
-*   **Funzioni operative:**
-    *   **Esportazione Dati:** Genera ed esporta all'istante copie conformi del database.
-    *   **Ripristino Database:** Esegue l'importazione di un file SQLite con validazione preliminare della firma del database per evitarne la corruzione.
-    *   **Pulizia File Temporanei:** Svuota in sicurezza le cartelle `lista_distribuzione`, `picking list` e `richiesta_analisi`.
+Posizionato sul lato destro della schermata principale, il pannello degli Avvisi funge da sistema di monitoraggio proattivo e di allerta in tempo reale. Il suo scopo principale è richiamare l'attenzione del personale sulle criticità operative del magazzino prima o non appena queste si verifichino.
+
+Il sistema elabora costantemente i dati e gestisce tre tipologie di avvisi. Se il magazzino si trova in uno stato di perfetta conformità e non vi sono anomalie, la colonna rimane vuota, garantendo un'interfaccia pulita.
+
+### Tipologie di Segnalazione
+
+1.  **Avviso Lotti Scaduti:**
+    Questo modulo mostra l'elenco di tutti i lotti presenti in magazzino che hanno già superato la loro data di scadenza ufficiale, ma che presentano ancora una giacenza residua maggiore di zero.
+    *   **Impatto operativo:** Questa segnalazione è cruciale per impedire l'impiego accidentale di reagenti o materiali scaduti nelle sessioni di analisi o sintesi.
+2.  **Avviso Scadenze Imminenti (Alert Scorte Minime):**
+    In questa sezione vengono raggruppate tutte le materie prime la cui giacenza totale complessiva (sommando tutti i lotti attivi) è scesa al di sotto della soglia minima di sicurezza impostata nell'anagrafica del prodotto.
+    *   **Impatto operativo:** Funge da promemoria per l'ufficio acquisti o per i responsabili del laboratorio per procedere tempestivamente al riordino del materiale, evitando il blocco delle attività.
+3.  **Avviso Sotto Scorta Minima (Alert Scadenze nei successivi 30 Giorni):**
+    Questa sezione mostra l'elenco cronologico di tutti i lotti in magazzino la cui data di scadenza programmata cadrà nei successivi 30 giorni.
+    *   **Impatto operativo:** Permette al personale di pianificare i flussi di lavoro ottimizzando il consumo dei lotti più vicini al fine ciclo di vita, riducendo al minimo gli sprechi di magazzino.
+
+---
+
+## ⚙️ 7. Pulsanti Ausiliari e Funzioni di Amministrazione
+
+Questa sezione descrive le funzionalità accessibili tramite i pulsanti ausiliari posizionati nella barra superiore sulla destra dell'interfaccia principale. Questi strumenti consentono di consultare dati storici, configurare il sistema e monitorare l'andamento del laboratorio.
+
+### 📊 A. Statistiche
+La pagina Statistiche è un'area di sola consultazione progettata per offrire una panoramica visiva e immediata sull'andamento delle attività all'interno del laboratorio. Attraverso grafici dinamici e tabelle riassuntive, il sistema elabora automaticamente i dati memorizzati per monitorare l'efficienza dei flussi di lavoro.
+*   **Funzionalità principali:** La sezione non richiede l'inserimento di dati o interazioni operative, ma funge da cruscotto informativo per analizzare:
+    *   **Tracciamento dei consumi:** Analisi quantitativa dei materiali utilizzati in un determinato arco temporale.
+    *   **Storico degli scarichi:** Monitoraggio della frequenza e dei volumi di scarico delle materie prime.
+    *   **Ottimizzazione delle scorte:** Rappresentazione visiva dell'utilizzo dei prodotti, utile per prevedere le tempistiche di riordino e minimizzare gli sprechi di magazzino.
+    *   *Nota:* I grafici si aggiornano in tempo reale a ogni nuova operazione di carico o scarico registrata nel gestionale, garantendo uno storico sempre allineato e consultabile.
+
+---
+
+### ⚙️ B. Impostazioni
+Il menu Impostazioni raggruppa le funzionalità dedicate alla sicurezza dei dati, al tracciamento delle attività e alla manutenzione ordinaria dell'applicazione.
+
+#### 1. Backup & Protezione Dati
+La pagina offre gli strumenti necessari per la salvaguardia e il ripristino dell'intero database del laboratorio. Il sistema adotta una politica di protezione automatica, riducendo al minimo l'intervento manuale.
+*   **Backup Automatico all'Avvio:** Ogni volta che il software viene avviato, viene generata una copia di sicurezza del database, salvata all'interno della cartella `database/backup/`.
+*   **Backup Automatico Giornaliero:** Se il server rimane attivo in modo continuativo per lungo tempo, il gestionale esegue in autonomia un backup ogni 24 ore.
+*   **Rotazione dei File:** Per ottimizzare lo spazio sul disco ed evitare l'accumulo di file obsoleti, il sistema mantiene in memoria un massimo di **30 copie**. Raggiunto tale limite, il backup più datato verrà rimosso per fare spazio al nuovo.
+*   **Creazione di un Backup Manuale:**
+    1.  Accedere alla sezione *Backup*.
+    2.  Inserire il proprio nome nel campo **Operatore**.
+    3.  Premere il pulsante **"Crea backup"**.
+*   **Registro Storico e Ripristino dei Dati:** La tabella *"Registro Storico dei Backup nel Sistema"* elenca cronologicamente tutti i salvataggi disponibili, specificandone l'origine. Per recuperare i dati di una sessione precedente, individuare il backup desiderato e premere il pulsante **"Ripristina"**. Questa azione sovrascriverà il database corrente con i dati memorizzati nella copia selezionata.
+    *   > [!IMPORTANT]
+        > **Protezione da Sovrascrittura (Emergenza):** Al fine di prevenire perdite accidentali di dati recenti, ogni operazione di ripristino genera automaticamente una copia speculare dello stato corrente del database, rinominata con la dicitura *"Emergenza Pre-Ripristino"*.
+
+#### 2. Registro del Server (Log)
+In fondo alla pagina delle Impostazioni è visualizzato in tempo reale il log delle attività del terminale. Questa sezione monitora i processi interni del server ed è utile per scopi diagnostici in caso di anomalie.
+
+#### 3. Storico Operazioni (Audit Trail)
+Questa sezione garantisce la piena tracciabilità di ogni azione eseguita sul database del laboratorio (inserimenti, prelievi o modifiche) in linea con i più severi requisiti regolatori (GMP compliant).
+*   La pagina mostra l'elenco cronologico di tutte le attività operative registrate dal personale.
+*   **Verifica delle modifiche (Variazioni):** Selezionando una voce modificata, il sistema mostra una schermata di confronto immediato tra i valori precedenti (**Pre-Modifica**) e quelli attuali (**Post-Modifica**). Le differenze tra i dati vengono evidenziate visivamente per facilitare il controllo ispettivo e identificare rapidamente eventuali anomalie o errori di inserimento.
+
+#### 4. Spegnimento dell'Applicazione
+Una corretta chiusura del software garantisce l'integrità del database e il rilascio sicuro delle risorse di sistema del computer.
+*   > [!IMPORTANT]
+    > La semplice chiusura della finestra o della scheda del browser web non interrompe l'esecuzione dell'applicazione, che rimarrà attiva in background sul computer principale.
+*   **Procedura di arresto sicuro:** Per spegnere definitivamente il server del gestionale, accedere alla pagina delle Impostazioni e premere il pulsante **"Spegni applicazione"**. La procedura salverà in modo sicuro ogni sessione aperta prima di arrestare l'applicazione, scongiurando qualsiasi perdita o corruzione dei dati. Si raccomanda di effettuare questa operazione al termine di ogni giornata lavorativa.
+
+#### 5. Tema Giorno/Notte
+Posizionato come ultima voce all'interno del menu Impostazioni, questo comando consente di invertire istantaneamente lo schema cromatico dell'intera interfaccia utente, passando da un tema chiaro a uno scuro.
+*   **Interruttore di Tema:** Cliccando sul pulsante, il software adatta i colori delle schermate per rispondere alle preferenze visive dell'operatore o alle condizioni di illuminazione del laboratorio.
+*   *Nota di utilizzo:* Il sistema è stato nativamente progettato e ottimizzato per la **Modalità Notte (Tema Scuro)**, che garantisce la massima coerenza visiva e il contrasto ideale tra tutti gli elementi grafici. La Modalità Giorno (Tema Chiaro) va intesa come una funzionalità secondaria; di conseguenza, in alcune schermate l'abbinamento dei colori potrebbe risultare meno uniforme rispetto alla configurazione scura di default.
